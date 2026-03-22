@@ -48,4 +48,52 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// POST /auth/login — returns JWT access token + httpOnly refresh token
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    // TODO: fetch user from DB
+    // const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    // const user = result.rows[0];
+    // if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+    // Verify password
+    // const valid = await bcrypt.compare(password, user.password_hash);
+    // if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+
+    // Issue JWT access token (15 min expiry)
+    // const accessToken = jwt.sign(
+    //   { userId: user.user_id, role: user.role },
+    //   process.env.JWT_SECRET,
+    //   { expiresIn: process.env.JWT_EXPIRY }
+    // );
+
+    // Issue refresh token (7 days) — stored in httpOnly cookie
+    // const refreshToken = jwt.sign(
+    //   { userId: user.user_id },
+    //   process.env.REFRESH_TOKEN_SECRET,
+    //   { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+    // );
+
+    // res.cookie('refreshToken', refreshToken, {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === 'production',
+    //   sameSite: 'Strict',
+    //   maxAge: 7 * 24 * 60 * 60 * 1000
+    // });
+
+    // return res.status(200).json({ accessToken });
+
+    return res.status(200).json({ message: "Login endpoint ready" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;
