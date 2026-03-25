@@ -48,7 +48,8 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// POST /auth/login — returns JWT access token + httpOnly refresh token
+// POST /auth/login — JWT access token + httpOnly refresh token
+// Implements: REQ-1, REQ-3
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -60,20 +61,26 @@ router.post("/login", async (req, res) => {
     // TODO: fetch user from DB
     // const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     // const user = result.rows[0];
-    // if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-    // Verify password
+    // if (!user) {
+    //   await req.loginFailed();
+    //   return res.status(401).json({ error: 'Invalid credentials' });
+    // }
+
     // const valid = await bcrypt.compare(password, user.password_hash);
-    // if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+    // if (!valid) {
+    //   await req.loginFailed();
+    //   return res.status(401).json({ error: 'Invalid credentials' });
+    // }
 
-    // Issue JWT access token (15 min expiry)
+    // await req.loginSuccess();
+
     // const accessToken = jwt.sign(
     //   { userId: user.user_id, role: user.role },
     //   process.env.JWT_SECRET,
     //   { expiresIn: process.env.JWT_EXPIRY }
     // );
 
-    // Issue refresh token (7 days) — stored in httpOnly cookie
     // const refreshToken = jwt.sign(
     //   { userId: user.user_id },
     //   process.env.REFRESH_TOKEN_SECRET,
@@ -89,7 +96,9 @@ router.post("/login", async (req, res) => {
 
     // return res.status(200).json({ accessToken });
 
-    return res.status(200).json({ message: "Login endpoint ready" });
+    return res
+      .status(200)
+      .json({ message: "Login endpoint ready — lockout active" });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error" });
