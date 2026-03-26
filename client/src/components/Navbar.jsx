@@ -1,32 +1,56 @@
+/**
+ * ========================================
+ * NAVBAR COMPONENT
+ * Global navigation bar shown on all pages
+ * ========================================
+ * Features:
+ * - Responsive navigation
+ * - Conditional rendering based on auth state
+ * - Logout functionality
+ */
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
-  // Pull current user state and logout mechanism from auth context
+  // Get user state and logout function from auth context
   const { user, logout } = useAuth();
 
   return (
     <nav className="navbar">
-      {/* Platform Brand / Title linked to home */}
+      {/* ===== BRAND / LOGO ===== */}
+      {/* Links to home page, always visible */}
       <Link to="/" className="nav-brand">
-        Patient Portal
+        🏥 Patient Portal
       </Link>
 
-      {/* Action buttons pinned to the rightmost side */}
+      {/* ===== NAVIGATION ACTIONS ===== */}
+      {/* Right-aligned buttons, change based on auth state */}
       <div className="nav-links">
         {user ? (
           <>
-            <span style={{ color: 'var(--text-main)', fontSize: '0.9rem', fontWeight: 500 }}>
-              Welcome, {user.name}
+            {/* Authenticated User: Show greeting and logout */}
+            <span style={{ 
+              color: 'var(--text-primary)', 
+              fontSize: '0.95rem', 
+              fontWeight: 600,
+              padding: '0.5rem 0.75rem'
+            }}>
+              {user.name}
             </span>
-            <button onClick={logout} className="nav-btn outline" style={{ cursor: 'pointer' }}>
-              Log Out
+            <button 
+              onClick={logout} 
+              className="nav-btn outline" 
+              style={{ cursor: 'pointer', border: 'none' }}
+            >
+              Sign Out
             </button>
           </>
         ) : (
           <>
-            <Link to="/login" className="nav-btn outline">Log In</Link>
+            {/* Unauthenticated User: Show login and register links */}
+            <Link to="/login" className="nav-btn outline">Sign In</Link>
             <Link to="/register" className="nav-btn solid">Register</Link>
           </>
         )}
