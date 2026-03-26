@@ -1,45 +1,70 @@
+/**
+ * ========================================
+ * LOGIN PAGE COMPONENT
+ * Authenticates existing patients
+ * ========================================
+ * Route: /login
+ * Access: Public (redirects authenticated users)
+ */
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
-  // State for tracking form input values
+  // ===== STATE MANAGEMENT =====
+  
+  // Stores form input values
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
 
-  // State for tracking field-specific validation errors
+  // Stores field-specific validation errors
   const [errors, setErrors] = useState({});
-  // State for general login failure messages
+  
+  // Stores general authentication errors
   const [authError, setAuthError] = useState('');
   
+  // ===== ROUTING & CONTEXT =====
+  
+  // Get login function from auth context
   const { login } = useAuth();
+  
+  // Navigation hook for programmatic routing
   const navigate = useNavigate();
 
-  // Handles input changes and clears errors actively when typing
+  // ===== EVENT HANDLERS =====
+
+  /**
+   * Updates form data on input change
+   * Clears field errors as user starts correcting
+   */
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear validation error when user begins to correct it
+    
+    // Clear error message when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
-  // Validates form input and returns true if valid, tracking errors otherwise
+  /**
+   * Validates email and password fields
+   * Returns true if all validations pass
+   */
   const validateForm = () => {
     const newErrors = {};
     
-    // Check if email is empty
+    // Email validation
     if (!formData.email) {
-      newErrors.email = 'Email is required';
-      // Simple regex for email format validation
+      newErrors.email = 'Email address is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = 'Please enter a valid email address';
     }
 
-    // Check if password meets minimum requirements
+    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
@@ -50,51 +75,60 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Trigger login process when form is valid
+  /**
+   * Handles form submission
+   * Validates form, calls login API, navigates to dashboard
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setAuthError('');
 
+    // Only proceed if form is valid
     if (validateForm()) {
       try {
+        // Call login function from auth context
         await login(formData.email, formData.password);
-        console.log('Login successful');
-        // Navigate securely to dashboard
+        
+        // Navigate to protected dashboard route
         navigate('/dashboard');
       } catch (err) {
-        setAuthError('Invalid email or password');
+        // Display authentication error to user
+        setAuthError('Invalid email or password. Please try again.');
       }
     }
   };
 
+  // ===== RENDER =====
+
   return (
     <div className="auth-container">
       <div className="auth-card">
+        {/* Form Header */}
         <h1 className="auth-title">Welcome Back</h1>
-        <p className="auth-subtitle">Log in to manage your appointments</p>
+        <p className="auth-subtitle">Sign in to your patient account</p>
 
-        {/* Display general auth errors (e.g., incorrect credentials) */}
+        {/* Display general errors (e.g., invalid credentials) */}
         {authError && <div className="alert error">{authError}</div>}
 
+        {/* Login Form */}
         <form onSubmit={handleSubmit} noValidate>
-          {/* Email Form Field */}
+          {/* Email Field */}
           <div className="form-group">
             <label className="form-label" htmlFor="email">Email Address</label>
             <input
               type="email"
               id="email"
               name="email"
-              // Add 'error' class if field has validation issue
               className={`form-input ${errors.email ? 'error' : ''}`}
               value={formData.email}
               onChange={handleChange}
-              placeholder="you@example.com"
+              placeholder="name@example.com"
+              autoComplete="email"
             />
-            {/* Field specific error output */}
             {errors.email && <span className="error-message">{errors.email}</span>}
           </div>
 
-          {/* Password Form Field */}
+          {/* Password Field */}
           <div className="form-group">
             <label className="form-label" htmlFor="password">Password</label>
             <input
@@ -105,19 +139,18 @@ const Login = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
+              autoComplete="current-password"
             />
             {errors.password && <span className="error-message">{errors.password}</span>}
           </div>
 
-          {/* Submit Action */}
-          <button type="submit" className="auth-button">
-            Log In
-          </button>
+          {/* Submit Button */}
+          <button type="submit" className="auth-button">Sign In</button>
         </form>
 
-        {/* Navigation Link to registration page */}
+        {/* Link to Registration Page */}
         <div className="auth-link">
-          Don't have an account? <Link to="/register">Register here</Link>
+          Don't have an account? <Link to="/register">Create one now</Link>
         </div>
       </div>
     </div>
