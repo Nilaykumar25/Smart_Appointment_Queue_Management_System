@@ -2,6 +2,13 @@
 // See SRS Section 7.4.2 — Logging, Auditing and Monitoring
 // See SRS Section 7.3.1 — Audit_Logs table
 
+// Example usage on a protected admin route:
+// router.patch('/schedules/:id',
+//   requireRole(['admin']),
+//   auditMiddleware('SCHEDULE'),
+//   scheduleController.updateSlot
+// );
+
 const redisClient = require("../db/redis");
 
 const auditLog = async ({

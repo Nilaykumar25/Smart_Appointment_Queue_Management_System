@@ -1,20 +1,28 @@
-// Audit middleware — logs ALL routes
+// Implements: REQ-18 — Immutable audit trail
+// Scoped to admin and schedule-change routes only
+// See SRS Section 7.4.2 — Logging, Auditing and Monitoring
 
 const auditLog = require("../services/auditLogService");
 
-const auditMiddleware = async (req, res, next) => {
+// Use this middleware only on specific sensitive routes:
+// router.patch('/schedules/:id', requireRole(['admin']), auditMiddleware, handler)
+// router.post('/schedules/blackout', requireRole(['admin']), auditMiddleware, handler)
+// router.patch('/users/:id/role', requireRole(['admin']), auditMiddleware, handler)
+
+const auditMiddleware = (entityType) => async (req, res, next) => {
   try {
-    // This is too broad — logs every request including public routes
     await auditLog({
-      userId: req.user?.userId || "anonymous",
+      userId: req.user?.userId || "unknown",
       action: `${req.method} ${req.path}`,
-      entityType: "ALL_ROUTES",
-      entityId: "N/A",
+      entityType: entityType,
+      entityId: req.params?.id || "N/A",
+      oldValue: null,
+      newValue: req.body || null,
       ipAddress: req.ip,
       userAgent: req.headers["user-agent"],
     });
   } catch (err) {
-    console.error(err);
+    console.error("Audit middleware error:", err);
   }
   next();
 };
