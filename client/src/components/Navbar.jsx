@@ -56,6 +56,7 @@ const Navbar = () => {
               fontWeight: 600,
               padding: '0.5rem 0.75rem'
             }}>
+              
             </span>
             {/* REQ-4: Find Doctors link for authenticated users */}
             <Link to="/doctors" className="nav-btn outline">

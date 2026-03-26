@@ -9,6 +9,7 @@ import AboutUs from './pages/AboutUs';
 import ContactUs from './pages/ContactUs';
 import Help from './pages/Help';
 import DoctorSearch from './pages/DoctorSearch';
+import BookAppointment from './pages/BookAppointment';
 import './App.css';
 
 // ProtectedRoute component ensures only authenticated users can view the dashboard
@@ -40,6 +41,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <DoctorSearch />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* REQ-5: Book Appointment Route with Slot Picker - Protected */}
+          <Route 
+            path="/book-appointment/:doctorId" 
+            element={
+              <ProtectedRoute>
+                <BookAppointment />
               </ProtectedRoute>
             } 
           />
