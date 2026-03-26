@@ -2,6 +2,7 @@
  * ========================================
  * HOME PAGE COMPONENT
  * Landing page for unauthenticated users
+ * REQ-4: Enhanced patient UI for doctor search navigation
  * ========================================
  * Route: / (root)
  * Access: Public (redirects authenticated users to dashboard)
@@ -26,23 +27,25 @@ const Home = () => {
       {/* ===== HERO SECTION ===== */}
       {/* Main value proposition and call-to-action buttons */}
       <section className="hero-section">
-        <h1 className="home-title">Your Health, Simplified</h1>
-        <p className="home-subtitle">
-          Book, manage, and track your medical appointments effortlessly. 
-          Skip the waiting room, join the queue from home, and visit only when it's your turn.
-        </p>
-        
-        {/* Primary action buttons */}
-        <div className="hero-actions">
-          {/* CTA: Register new patient */}
-          <Link to="/register" className="nav-btn solid hero-btn">
-            Get Started Now
-          </Link>
+        <div className="hero-content">
+          <h1 className="home-title">Your Health, Simplified</h1>
+          <p className="home-subtitle">
+            Book, manage, and track your medical appointments effortlessly. 
+            Skip the waiting room, join the queue from home, and visit only when it's your turn.
+          </p>
           
-          {/* Secondary CTA: Existing patient login */}
-          <Link to="/login" className="nav-btn outline hero-btn">
-            Sign In
-          </Link>
+          {/* Primary action buttons */}
+          <div className="hero-actions">
+            {/* CTA: Register new patient */}
+            <Link to="/register" className="nav-btn solid hero-btn">
+              Get Started Now
+            </Link>
+            
+            {/* Secondary CTA: Existing patient login */}
+            <Link to="/login" className="nav-btn outline hero-btn">
+              Sign In
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -111,75 +114,60 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ===== ABOUT SECTION ===== */}
-      {/* Company story and mission */}
-      <section className="about-section">
-        <div className="about-content">
-          <h2>About Us</h2>
-          <p>
-            We're dedicated to transforming healthcare accessibility by eliminating unnecessary waits and bringing convenience to patient care. 
-            Our Smart Appointment Queue Management System combines cutting-edge technology with user-friendly design to make healthcare more efficient.
-          </p>
-          <p>
-            With our platform, healthcare providers can manage their resources better, and patients can spend their time more productively rather than waiting in clinics.
-          </p>
-          
-          {/* Statistics */}
-          <div className="stats-grid">
-            <div className="stat-item">
-              <span className="stat-number">10K+</span>
-              <span className="stat-label">Active Patients</span>
+      {/* ===== TRUSTED HEALTHCARE PROVIDERS SECTION ===== */}
+      {/* Showcase partnership and trust */}
+      <section className="providers-section">
+        <h2 className="section-title">Trusted by Healthcare Providers Worldwide</h2>
+        <div className="providers-content">
+          <div className="providers-stats">
+            <div className="stat-card">
+              <div className="stat-icon">👨‍⚕️</div>
+              <h3>500+ Doctors</h3>
+              <p>Professional healthcare providers partnering with us to deliver better patient care</p>
             </div>
-            <div className="stat-item">
-              <span className="stat-number">500+</span>
-              <span className="stat-label">Partner Doctors</span>
+            <div className="stat-card">
+              <div className="stat-icon">🏥</div>
+              <h3>100+ Clinics</h3>
+              <p>Modern medical facilities integrating our system for efficient appointment management</p>
             </div>
-            <div className="stat-item">
-              <span className="stat-number">50K+</span>
-              <span className="stat-label">Appointments Managed</span>
+            <div className="stat-card">
+              <div className="stat-icon">👥</div>
+              <h3>50K+ Patients</h3>
+              <p>Satisfied patients who've revolutionized their healthcare experience</p>
             </div>
-            <div className="stat-item">
-              <span className="stat-number">98%</span>
-              <span className="stat-label">Satisfaction Rate</span>
+            <div className="stat-card">
+              <div className="stat-icon">⭐</div>
+              <h3>4.9 Rating</h3>
+              <p>Consistently rated as the most reliable appointment management system</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ===== CONTACT SECTION ===== */}
-      {/* Contact information and support */}
-      <section className="contact-section">
-        <div className="contact-content">
-          <h2 className="section-title">Contact Us</h2>
-          
-          <div className="contact-grid">
-            {/* Email Contact */}
-            <div className="contact-item">
-              <div className="contact-icon">📧</div>
-              <h3>Email</h3>
-              <p>
-                <a href="mailto:support@patientportal.com">support@patientportal.com</a>
-              </p>
-            </div>
-
-            {/* Phone Contact */}
-            <div className="contact-item">
-              <div className="contact-icon">📞</div>
-              <h3>Phone</h3>
-              <p>
-                <a href="tel:+1-800-PATIENTS">+1 (800) 728-4837</a>
-              </p>
-            </div>
-
-            {/* Location Contact */}
-            <div className="contact-item">
-              <div className="contact-icon">📍</div>
-              <h3>Office</h3>
-              <p>
-                Healthcare Building, 123 Medical Lane<br />
-                New York, NY 10001
-              </p>
-            </div>
+      {/* ===== PREMIUM FEATURES SECTION ===== */}
+      {/* Advanced capabilities and benefits */}
+      <section className="premium-features-section">
+        <h2 className="section-title">Premium Features Built for You</h2>
+        <div className="features-showcase">
+          <div className="feature-showcase-card">
+            <div className="showcase-icon">📱</div>
+            <h3>Mobile-First Design</h3>
+            <p>Access your appointments and queue status anytime, anywhere with our seamless mobile application.</p>
+          </div>
+          <div className="feature-showcase-card">
+            <div className="showcase-icon">🔐</div>
+            <h3>Secure & Private</h3>
+            <p>Your health data is protected with enterprise-grade encryption and HIPAA compliance standards.</p>
+          </div>
+          <div className="feature-showcase-card">
+            <div className="showcase-icon">⚡</div>
+            <h3>Lightning Fast</h3>
+            <p>Experience instant booking confirmations and real-time queue updates with zero delays.</p>
+          </div>
+          <div className="feature-showcase-card">
+            <div className="showcase-icon">🌍</div>
+            <h3>Available 24/7</h3>
+            <p>Book appointments and manage your health schedule anytime, day or night, from anywhere in the world.</p>
           </div>
         </div>
       </section>

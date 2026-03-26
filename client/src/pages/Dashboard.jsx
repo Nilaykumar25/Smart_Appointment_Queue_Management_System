@@ -20,7 +20,7 @@ const Dashboard = () => {
       {/* ===== DASHBOARD HEADER ===== */}
       {/* Personalized greeting and introduction */}
       <div className="dashboard-header">
-        <h1>Welcome, {user?.name || 'Patient'}! 👋</h1>
+        <h1>Welcome, {user?.name || 'Patient'}! </h1>
         <p>Manage your appointments and track your queue status in real time.</p>
       </div>
       

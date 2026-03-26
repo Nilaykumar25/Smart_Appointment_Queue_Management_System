@@ -5,6 +5,10 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import AboutUs from './pages/AboutUs';
+import ContactUs from './pages/ContactUs';
+import Help from './pages/Help';
+import DoctorSearch from './pages/DoctorSearch';
 import './App.css';
 
 // ProtectedRoute component ensures only authenticated users can view the dashboard
@@ -26,6 +30,19 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/help" element={<Help />} />
+          
+          {/* REQ-4: Doctor Search Route - Protected (Authentication Required) */}
+          <Route 
+            path="/doctors" 
+            element={
+              <ProtectedRoute>
+                <DoctorSearch />
+              </ProtectedRoute>
+            } 
+          />
           
           {/* Dashboard Route protected by auth state */}
           <Route 
