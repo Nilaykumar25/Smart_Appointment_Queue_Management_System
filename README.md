@@ -2,204 +2,710 @@
 
 A web-based clinic appointment and queue management system built for DSC-11 Software Engineering. This application allows patients to easily book appointments with doctors, manage their schedules, and track their position in the waiting queue.
 
----
-
-## 🚀 Getting Started
-
-### For First-Time Users
-
-#### **Step 1: Create an Account**
-1. Click **"Register"** on the home page
-2. Fill in your details:
-   - Full Name
-   - Email Address
-   - Password (choose a strong password)
-   - Confirm Password
-3. Click **"Sign Up"** to create your account
-4. You'll be redirected to the login page
-
-#### **Step 2: Login to Your Account**
-1. Click **"Login"** on the home page
-2. Enter your email and password
-3. Click **"Login"** to access your dashboard
+**Live Demo:** [https://saqms-demo.vercel.app](coming-soon)
 
 ---
 
-## 📅 How to Book an Appointment
+## 📋 Table of Contents
 
-### **Step 1: Browse Doctors**
-1. After logging in, click **"Browse Doctors"** or navigate to the Doctors section
-2. View available doctors with their:
-   - Specialization/Medical Field
-   - Rating and Experience
-   - Consultation Fee
-3. Filter or search for doctors based on your needs
-
-### **Step 2: Select Date & Time**
-1. Click **"Book Appointment"** on your chosen doctor's card
-2. **Select a Date:**
-   - Choose from available appointment dates
-   - Calendar with available dates will be displayed
-3. **Select a Time Slot:**
-   - View available time slots for the selected date
-   - Search for specific times using the search bar
-   - Click on your preferred time slot
-
-### **Step 3: Review & Confirm**
-1. You'll see an **Appointment Summary** showing:
-   - Doctor name and specialty
-   - Selected date and time
-   - Consultation fee
-2. Click **"Confirm Booking"** to proceed to confirmation
-
-### **Step 4: Complete Patient Information**
-1. Provide additional medical information:
-   - **Reason for Visit** (required) - Describe your symptoms/concerns
-   - **Medical History** (optional) - Previous conditions or surgeries
-   - **Allergies** (optional) - Any known allergies
-   - **Current Medications** (optional) - Medications you're taking
-2. Review the **Terms & Conditions:**
-   - **Cancellation Policy** - Details about cancellation windows
-   - **Privacy Policy** - Your data protection information
-   - **Appointment Terms** - What to expect during your visit
-3. Check the agreement checkbox: "I have read and agree to the terms..."
-4. Click **"✅ Confirm Booking"** to finalize your appointment
-
-### **Step 5: Appointment Confirmed**
-- You'll see a **Success Message** ✅
-- You'll be automatically redirected to your **Dashboard** in 2 seconds
-- Your appointment is now saved and ready!
+- [Quick Start](#quick-start)
+- [User Guide](#user-guide)
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Setup Instructions](#setup-instructions)
+- [Environment Configuration](#environment-configuration)
+- [Development](#development)
+- [Deployment](#deployment)
+- [API Endpoints](#api-endpoints)
+- [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
+- [Team](#team)
 
 ---
 
-## 📊 Your Dashboard
+## ⚡ Quick Start
 
-Once logged in, your dashboard shows:
+### For Users (5 minutes)
+```
+1. Navigate to https://saqms.com
+2. Click "Register" → Create your account
+3. Login with your email & password
+4. Click "Browse Doctors" → Find a doctor
+5. Select date, time → Confirm appointment
+6. View appointment in Dashboard
+```
 
-### **Appointment Statistics**
-- **📅 Upcoming Appointments** - Total number of scheduled appointments
-- **✅ Completed** - Appointments you've successfully attended
-- **⏱️ Queue Position** - Your current position in the waiting queue
-- **💰 Amount Due** - Any pending payments
+### For Developers (10 minutes)
+```bash
+# Clone and setup
+git clone https://github.com/team/saqms.git
+cd saqms
 
-### **Upcoming Appointments**
-View all your scheduled appointments with:
-- Doctor name and specialty
-- Appointment date and time
-- Status (Confirmed, Pending, Completed, Cancelled)
-- **Cancel Appointment** button if needed
+# Backend setup
+cd server
+npm install
+cp .env.example .env
+npm run migrate
+npm start
 
-### **Other Features**
-- **Queue Status** - Real-time tracking of your position in clinic queue
-- **Medical Records** - Access your consultation summaries and prescriptions
-- **Notifications** - Important updates about appointments and queue changes
+# Frontend setup (new terminal)
+cd client
+npm install
+npm run dev
+
+# Open http://localhost:5173
+```
 
 ---
 
-## 🔧 Features & Capabilities
+## 👥 User Guide
 
 ### **For Patients**
-✅ Easy registration and secure login
-✅ Browse doctors by specialty, rating, and experience
-✅ View real-time appointment availability
-✅ Book appointments with comprehensive information
-✅ Review and manage all your appointments
-✅ Cancel appointments with proper policies
-✅ Track your position in the waiting queue
-✅ Access medical records and consultation history
-✅ Receive appointment reminders and notifications
 
-### **Appointment Workflow**
-1. **Doctor Search** → Find the right doctor
-2. **Slot Selection** → Choose date & time
-3. **Booking Confirmation** → Verify all details
-4. **Patient Information** → Provide medical context
-5. **Final Confirmation** → Save appointment
-6. **Dashboard View** → Manage your appointments
+#### Creating an Account
+1. Click **"Register"** on homepage
+2. Enter email, full name, and password
+3. Click **"Sign Up"**
+4. Verify email (check inbox for confirmation link)
+5. Login and start booking!
+
+#### Booking an Appointment (5-Step Process)
+
+**STEP 1: Browse Doctors**
+- Navigate to "Browse Doctors"
+- Filter by: Specialty, Rating, Experience, Fee
+- View doctor profiles with credentials
+
+**STEP 2: Select Date & Time**
+- Choose appointment date from calendar
+- Pick available time slot
+- Use search to find specific times
+- View appointment details (fee, duration)
+
+**STEP 3: Review Appointment**
+- Confirm doctor name, specialty, experience
+- Double-check selected date and time
+- Review consultation fee
+- Click "Confirm Booking"
+
+**STEP 4: Provide Medical Information**
+- **Reason for Visit** (required) - Describe symptoms
+- **Medical History** (optional) - Previous conditions
+- **Allergies** (optional) - Drug/food allergies
+- **Current Medications** (optional) - Medicines you take
+- Review and agree to Terms & Conditions
+- Click "Confirm Booking"
+
+**STEP 5: Success!**
+- See confirmation message ✅
+- Auto-redirected to Dashboard
+- View appointment in your list
+
+#### Managing Your Appointments
+
+**View Appointments**
+- Go to Dashboard → "Upcoming Appointments"
+- See all details: doctor, date, time, status
+- Track confirmation status
+
+**Cancel Appointments**
+- Click "Cancel Appointment" button next to booking
+- Confirm cancellation
+- Check cancellation policy for refunds
+
+**Reschedule**
+- Cancel current appointment
+- Book a new appointment
+
+#### Dashboard Features
+- **Statistics:** Total appointments, completed visits, queue position
+- **Medical Records:** View past consultation summaries
+- **Queue Tracking:** Real-time waiting queue position
+- **Notifications:** Appointment reminders (24 hours before)
+
+#### Account Management
+- **Profile:** Update name, contact, address
+- **Password:** Change password anytime
+- **Settings:** Notification preferences, privacy settings
+- **Logout:** Securely logout from any device
 
 ---
 
-## 💡 Important Information
+## 🎯 Features
 
-### **Cancellation Policy**
-- **Free Cancellation:** Up to 24 hours before appointment
-- **Partial Refund:** 50% refund if cancelled 12-24 hours before
-- **No Refund:** Less than 12 hours cancellation
-- **Full Charge:** No-show without cancellation
+### **Core Features**
+✅ User Registration & Authentication  
+✅ JWT-based secure login  
+✅ Doctor Directory with advanced search  
+✅ Real-time appointment slot availability  
+✅ Multi-step appointment booking with confirmation  
+✅ Medical information collection  
+✅ Patient dashboard with statistics  
+✅ Appointment management (view, cancel, reschedule)  
+✅ Queue position tracking  
+✅ Email & SMS notifications  
+✅ Appointment reminders  
 
-### **Appointment Reminders**
-- Email reminders sent 24 hours before appointment
-- SMS notifications for important updates
-- Check your dashboard regularly for updates
+### **Security Features**
+🔒 Password encryption with bcrypt  
+🔒 JWT token authentication  
+🔒 Protected routes (authorization required)  
+🔒 HIPAA-compliant data storage  
+🔒 SSL/TLS encryption in transit  
+🔒 Secure password reset via email  
 
-### **Preparing for Your Appointment**
-- Arrive 10 minutes early at the clinic
-- Bring valid ID and insurance information if applicable
-- Have your medical history ready if it's your first visit
-- Prepare a list of current medications you're taking
-- Note down any allergies or drug sensitivities
+### **Performance Features**
+⚡ Redis caching for doctor listings  
+⚡ Real-time slot availability updates  
+⚡ Optimized database queries  
+⚡ CDN for static assets  
+⚡ Progressive Web App (PWA) compatible  
+
+### **Accessibility Features**
+♿ Mobile-responsive design  
+♿ WCAG 2.1 AA compliant  
+♿ Keyboard navigation support  
+♿ Dark mode support  
+♿ Multiple language support (coming soon)  
 
 ---
 
-## 🆘 Need Help?
+## 📁 Project Structure
 
-### **Common Questions**
+```
+saqms/
+├── client/                          # React Frontend
+│   ├── src/
+│   │   ├── pages/                  # Page components
+│   │   │   ├── Home.jsx            # Landing page
+│   │   │   ├── Login.jsx           # User login
+│   │   │   ├── Register.jsx        # User registration
+│   │   │   ├── DoctorSearch.jsx    # Doctor listing & search
+│   │   │   ├── BookAppointment.jsx # Slot selection
+│   │   │   ├── BookingConfirmation.jsx # Final confirmation
+│   │   │   ├── Dashboard.jsx       # Patient dashboard
+│   │   │   ├── AboutUs.jsx         # About page
+│   │   │   ├── ContactUs.jsx       # Contact page
+│   │   │   └── Help.jsx            # Help/FAQ page
+│   │   ├── components/             # Reusable components
+│   │   │   └── Navbar.jsx          # Navigation bar
+│   │   ├── context/                # React context
+│   │   │   └── AuthContext.jsx     # Authentication state
+│   │   ├── styles/                 # CSS files
+│   │   ├── App.jsx                 # Main app component
+│   │   ├── main.jsx                # Entry point
+│   │   └── index.css               # Global styles
+│   ├── package.json
+│   ├── vite.config.js
+│   └── README.md
+│
+├── server/                          # Express Backend
+│   ├── src/
+│   │   ├── db/
+│   │   │   └── migrations/         # Database migrations
+│   │   │       ├── 001_create_users.sql
+│   │   │       ├── 002_create_doctors.sql
+│   │   │       ├── 003_create_schedules.sql
+│   │   │       ├── 004_create_appointments.sql
+│   │   │       ├── 005_create_queue.sql
+│   │   │       ├── 006_create_notifications.sql
+│   │   │       └── 007_create_audit_logs.sql
+│   │   ├── routes/                 # API routes
+│   │   ├── controllers/            # Business logic
+│   │   ├── middleware/             # Auth, validation
+│   │   ├── services/               # Business logic
+│   │   └── app.js                  # Express app setup
+│   ├── package.json
+│   ├── .env.example
+│   └── README.md
+│
+├── docs/                           # Documentation
+│   ├── SETUP.md                    # Detailed setup guide
+│   ├── API.md                      # API documentation
+│   └── DATABASE.md                 # Database schema
+│
+├── README.md                        # This file
+└── .gitignore
+```
+
+---
+
+## 🚀 Setup Instructions
+
+### Prerequisites
+- **Node.js** v18 or higher
+- **npm** or **yarn**
+- **PostgreSQL** 14 or higher
+- **Redis** (optional, for caching)
+- **Git**
+
+### Backend Setup
+
+1. **Clone repository**
+   ```bash
+   git clone https://github.com/team/saqms.git
+   cd saqms/server
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Setup PostgreSQL database**
+   ```bash
+   createdb saqms_development
+   # Or via pgAdmin/DBeaver
+   ```
+
+4. **Run database migrations**
+   ```bash
+   npm run migrate
+   # Creates all tables (users, doctors, appointments, etc.)
+   ```
+
+5. **Configure environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configurations
+   ```
+
+6. **Start backend server**
+   ```bash
+   npm start
+   # Server runs on http://localhost:5000
+   ```
+
+### Frontend Setup
+
+1. **Navigate to client**
+   ```bash
+   cd ../client
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start development server**
+   ```bash
+   npm run dev
+   # Frontend runs on http://localhost:5173
+   ```
+
+4. **Build for production**
+   ```bash
+   npm run build
+   # Creates optimized production build
+   ```
+
+---
+
+## 🔐 Environment Configuration
+
+### Backend (.env)
+```env
+# Server
+NODE_ENV=development
+PORT=5000
+DEBUG=true
+
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=saqms_development
+DB_USER=postgres
+DB_PASSWORD=your_password
+
+# JWT
+JWT_SECRET=your_jwt_secret_key_min_32_chars
+JWT_EXPIRY=7d
+
+# Email (SendGrid)
+SENDGRID_API_KEY=your_sendgrid_api_key
+FROM_EMAIL=noreply@saqms.com
+
+# SMS (Twilio)
+TWILIO_ACCOUNT_SID=your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_PHONE=+1XXXXXXXXXX
+
+# OAuth (Optional)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# Redis (Optional)
+REDIS_URL=redis://localhost:6379
+```
+
+### Frontend (.env)
+```env
+VITE_API_URL=http://localhost:5000
+VITE_APP_NAME=SAQMS
+VITE_APP_VERSION=1.0.0
+```
+
+---
+
+## 💻 Development
+
+### Running Development Servers
+
+**Terminal 1 (Backend)**
+```bash
+cd server
+npm run dev
+# Watches for changes, auto-restarts
+```
+
+**Terminal 2 (Frontend)**
+```bash
+cd client
+npm run dev
+# Hot module reloading enabled
+```
+
+### Code Structure Best Practices
+
+**Frontend Components**
+- Use functional components with hooks
+- Keep components small and focused
+- Use React Context for state management
+- Place CSS in component-specific files
+
+**Backend API**
+- RESTful endpoint design
+- Consistent error responses
+- Input validation on all routes
+- Proper HTTP status codes
+
+### Testing
+
+```bash
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+### Debugging
+
+**Backend Debug Logs**
+```
+NODE_ENV=development npm start
+# Check logs in console
+```
+
+**Frontend React DevTools**
+- Install React DevTools browser extension
+- Inspect component props, state
+- Profiler tab for performance
+
+---
+
+## 🌐 Deployment
+
+### Deploy on Vercel (Recommended for Frontend)
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy from client directory
+cd client
+vercel
+# Follow prompts, select project, production
+```
+
+### Deploy on Heroku (Backend)
+
+```bash
+# Install Heroku CLI
+# https://devcenter.heroku.com/articles/heroku-cli
+
+# Create Heroku app
+heroku create saqms-api
+
+# Add database
+heroku addons:create heroku-postgresql:standard
+
+# Deploy
+git push heroku main
+```
+
+### Environment Variables for Production
+- Use secrets management (Vercel Secrets, Heroku Config Vars)
+- Never commit .env files
+- Rotate secrets regularly
+- Use strong, unique values
+
+---
+
+## 🔌 API Endpoints
+
+### Authentication
+```
+POST   /api/auth/register      - Register new user
+POST   /api/auth/login         - User login
+POST   /api/auth/logout        - User logout
+POST   /api/auth/refresh       - Refresh JWT token
+POST   /api/auth/forgot-password - Password reset request
+```
+
+### Doctors
+```
+GET    /api/doctors            - List all doctors
+GET    /api/doctors/:id        - Get doctor details
+GET    /api/doctors/search     - Search doctors
+GET    /api/doctors/:id/availability - Get available slots
+```
+
+### Appointments
+```
+POST   /api/appointments       - Create appointment
+GET    /api/appointments       - Get user's appointments
+GET    /api/appointments/:id   - Get appointment details
+PUT    /api/appointments/:id   - Update appointment
+DELETE /api/appointments/:id   - Cancel appointment
+```
+
+### Queue
+```
+GET    /api/queue             - Get queue status
+GET    /api/queue/:clinic_id  - Get clinic queue position
+```
+
+### Notifications
+```
+GET    /api/notifications     - Get user notifications
+PUT    /api/notifications/:id - Mark as read
+```
+
+For complete API documentation, see `/docs/API.md`
+
+---
+
+## 🔧 Troubleshooting
+
+### Frontend Issues
+
+**Issue: Port 5173 already in use**
+```bash
+# Kill process on port 5173
+lsof -i :5173
+kill -9 <PID>
+# Or use different port
+npm run dev -- --port 5174
+```
+
+**Issue: npm modules not installing**
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+
+**Issue: React not updating**
+```bash
+# Clear cache
+rm -rf .vite
+npm run dev
+```
+
+### Backend Issues
+
+**Issue: Database connection failed**
+```
+✓ Verify PostgreSQL is running
+✓ Check DB_HOST, DB_PORT, DB_USER in .env
+✓ Verify database exists: psql -l
+✓ Check credentials are correct
+```
+
+**Issue: Port 5000 already in use**
+```bash
+# Find and kill process
+lsof -i :5000
+kill -9 <PID>
+# Or use different port in .env
+```
+
+**Issue: Migrations failed**
+```bash
+# Check migration status
+npm run migrate:status
+# Rollback last migration
+npm run migrate:down
+# Re-run migrations
+npm run migrate:up
+```
+
+**Issue: JWT token invalid**
+```
+✓ Check JWT_SECRET is set in .env
+✓ Verify token not expired (check expiry time)
+✓ Clear browser cookies and login again
+```
+
+### Database Issues
+
+**Issue: Cannot connect to database**
+```bash
+# Check if PostgreSQL is running
+sudo service postgresql status
+
+# Login to PostgreSQL
+psql -U postgres
+
+# Create database if missing
+createdb saqms_development
+
+# Run migrations
+npm run migrate
+```
+
+**Issue: Table doesn't exist**
+```bash
+# Check migration status
+psql -U postgres -d saqms_development -c "\dt"
+
+# Re-run migrations
+npm run migrate:reset
+npm run migrate:up
+```
+
+---
+
+## ❓ FAQ
+
+### General Questions
+
 **Q: How do I reset my password?**
-A: Click "Forgot Password" on the login page and follow the email instructions.
+A: Click "Forgot Password" on login page. Enter your email and follow the reset link sent to your inbox.
 
-**Q: Can I reschedule my appointment?**
-A: Yes, you can cancel your current appointment and book a new one.
+**Q: Can I book multiple appointments?**
+A: Yes! You can book appointments with different doctors at different times.
 
-**Q: What if I need to cancel my appointment?**
-A: Use the "Cancel Appointment" button on your dashboard. Refer to our cancellation policy for refund information.
+**Q: Is my data secure?**
+A: Yes! We use SSL encryption, secure password hashing, and comply with HIPAA regulations.
 
-**Q: Is my personal information secure?**
-A: Yes, we follow HIPAA and data protection regulations. Your information is encrypted and never shared without consent.
+**Q: Do you store payment information?**
+A: We currently accept payments but don't store card details. Payments are processed securely via third-party providers.
 
-**Q: How can I contact a doctor outside of appointments?**
-A: Use the messaging feature in your dashboard (if available in your clinic).
+### Technical Questions
 
-### **Contact Us**
-- Email: support@saqms.com
-- Phone: +1-XXX-XXX-XXXX
-- Help Center: [Link to help page]
+**Q: What browser do I need?**
+A: Latest versions of Chrome, Firefox, Safari, or Edge. Mobile browsers also supported.
+
+**Q: Can I use the app offline?**
+A: Coming soon with PWA support!
+
+**Q: How often are my appointment times updated?**
+A: Slots are updated in real-time from the doctor's calendar.
+
+**Q: Can developers see the code?**
+A: Yes! This is open-source. See GitHub repo for full source code.
+
+### Account Questions
+
+**Q: How do I delete my account?**
+A: Go to Settings → Account → Delete Account. You'll need to confirm via email.
+
+**Q: Can I have multiple accounts?**
+A: One account per email. Contact support if you need to merge accounts.
+
+**Q: What happens to my data if I delete my account?**
+A: Your data is anonymized but appointment history is retained for clinic records.
+
+### Appointment Questions
+
+**Q: When will I receive appointment reminders?**
+A: Email reminder 24 hours before. SMS notification 1 hour before (if opted in).
+
+**Q: What if I miss my appointment?**
+A: Missing check-in may result in no-show charge. Contact clinic to reschedule.
+
+**Q: Can I reschedule an appointment?**
+A: Cancel current appointment and book a new one. Cancellation policy applies.
+
+---
+
+## 📞 Support
+
+- **Email:** support@saqms.com
+- **Phone:** +1-XXX-XXX-XXXX
+- **Help Center:** [https://help.saqms.com](https://help.saqms.com)
+- **GitHub Issues:** [https://github.com/team/saqms/issues](https://github.com/team/saqms/issues)
+- **Live Chat:** Available 9 AM - 9 PM (Mon-Fri)
 
 ---
 
 ## Tech Stack
 
-- **Frontend:** React + Vite
-- **Backend:** Node.js / Express
-- **Database:** PostgreSQL
-- **Authentication:** JWT + bcrypt
-- **Notifications:** SendGrid (email), Twilio (SMS)
-- **Styling:** CSS with modern design patterns
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 18, Vite, CSS3 |
+| **Backend** | Node.js, Express.js |
+| **Database** | PostgreSQL 14 |
+| **Cache** | Redis |
+| **Authentication** | JWT + bcrypt |
+| **Email** | SendGrid API |
+| **SMS** | Twilio API |
+| **Deployment** | Vercel (Frontend), Heroku (Backend) |
+| **Version Control** | Git/GitHub |
 
 ---
 
-## Prerequisites (Developer Setup)
+## 📚 Additional Resources
 
-- Node.js v18+
-- PostgreSQL 14+
-- Redis (for caching)
-- npm or yarn
-
----
-
-## Installation Guide (For Developers)
-
-_Refer to setup-specific documentation in the `/docs` folder for detailed installation and deployment instructions._
-
-## Team
-
-- Riddhima Chaturvedi
-- Shambhavi Goel
-- Nilay Kumar
-- Shubh Mittal
-- Amitansh Kesharwani
+- **Setup Guide:** See `/docs/SETUP.md`
+- **API Documentation:** See `/docs/API.md`
+- **Database Schema:** See `/docs/DATABASE.md`
+- **Contributing:** See `CONTRIBUTING.md`
 
 ---
 
-## License
+## 🤝 Contributing
 
-This project is developed as part of DSC-11 Software Engineering course.
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+See `CONTRIBUTING.md` for detailed guidelines.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see `LICENSE` file for details.
+
+---
+
+## 👥 Team
+
+- **Riddhima Chaturvedi** - Full Stack Developer
+- **Shambhavi Goel** - Frontend Developer
+- **Nilay Kumar** - Backend Developer
+- **Shubh Mittal** - Database Administrator
+- **Amitansh Kesharwani** - DevOps Engineer
+
+---
+
+## 🎉 Acknowledgments
+
+- Built as part of **DSC-11 Software Engineering** course
+- Special thanks to mentors and instructors
+- Community feedback and contributions
+
+---
+
+**Last Updated:** March 2026  
+**Version:** 1.0.0  
+**Status:** Active Development
