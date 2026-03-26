@@ -121,7 +121,6 @@ export default function BookAppointment() {
   const [selectedDate, setSelectedDate] = useState('2024-04-01');
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [bookingComplete, setBookingComplete] = useState(false);
 
   // REQ-5: Get unique dates from available slots
   const availableDates = useMemo(() => {
@@ -148,7 +147,12 @@ export default function BookAppointment() {
     });
   };
 
-  // REQ-5: Handle booking confirmation and save to dashboard
+  // ========================================
+  // REQ-5: Handle booking - Navigate to confirmation
+  // ========================================
+  // Purpose: Create appointment object and pass to confirmation page
+  // The appointment will be saved AFTER user confirms on confirmation screen
+  // This allows user to review and modify patient information before final save
   const handleBooking = () => {
     if (!selectedSlot) {
       alert('Please select a time slot');
@@ -169,22 +173,9 @@ export default function BookAppointment() {
       bookedOn: new Date().toISOString()
     };
 
-    // REQ-5: Save appointment to localStorage
-    try {
-      const existingAppointments = JSON.parse(localStorage.getItem('userAppointments')) || [];
-      existingAppointments.push(appointmentData);
-      localStorage.setItem('userAppointments', JSON.stringify(existingAppointments));
-    } catch (error) {
-      console.error('Error saving appointment:', error);
-    }
-
-    // Simulate booking submission (would call API in production)
-    setBookingComplete(true);
-
-    // Redirect to dashboard after 2 seconds
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 2000);
+    // REQ-6: Navigate to booking confirmation page (not directly to dashboard)
+    // Pass appointment data via navigation state for final review
+    navigate('/booking-confirmation', { state: { appointment: appointmentData } });
   };
 
   // REQ-5: Show error if doctor not found
@@ -197,31 +188,6 @@ export default function BookAppointment() {
             Back to Doctors
           </button>
         </div>
-      </div>
-    );
-  }
-
-  // REQ-5: Show success message after booking
-  if (bookingComplete) {
-    return (
-      <div className="booking-container">
-        <section className="booking-hero">
-          <h1>Appointment Booked Successfully! ✅</h1>
-        </section>
-        <section className="success-state">
-          <div className="success-card">
-            <div className="success-icon">🎉</div>
-            <h2>Thank you for booking!</h2>
-            <p>Your appointment has been confirmed</p>
-            <div className="booking-details">
-              <p><strong>Doctor:</strong> {selectedDoctor.name}</p>
-              <p><strong>Specialty:</strong> {selectedDoctor.specialty}</p>
-              <p><strong>Date:</strong> {formatDate(selectedDate)}</p>
-              <p><strong>Time:</strong> {selectedSlot ? availableSlots.find(s => s.id === selectedSlot).time : ''}</p>
-            </div>
-            <p className="redirect-info">Redirecting to dashboard...</p>
-          </div>
-        </section>
       </div>
     );
   }

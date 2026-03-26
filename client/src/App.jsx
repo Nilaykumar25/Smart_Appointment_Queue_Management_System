@@ -10,6 +10,7 @@ import ContactUs from './pages/ContactUs';
 import Help from './pages/Help';
 import DoctorSearch from './pages/DoctorSearch';
 import BookAppointment from './pages/BookAppointment';
+import BookingConfirmation from './pages/BookingConfirmation';
 import './App.css';
 
 // ProtectedRoute component ensures only authenticated users can view the dashboard
@@ -51,6 +52,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <BookAppointment />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* REQ-6: Booking Confirmation Route - Protected (Final review before saving) */}
+          <Route 
+            path="/booking-confirmation" 
+            element={
+              <ProtectedRoute>
+                <BookingConfirmation />
               </ProtectedRoute>
             } 
           />
