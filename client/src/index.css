@@ -929,6 +929,69 @@ main {
   transform: translateY(-8px);
 }
 
+/*========== REQ-7 & REQ-8: QUEUE STATUS STYLES ==========*/
+/* Queue Status Display - Shows patient's position and wait time */
+
+.queue-status-details {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(240, 147, 251, 0.08) 100%);
+  border: 2px solid var(--primary);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  animation: slideInUp 0.6s ease-out;
+}
+
+.queue-info-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.queue-info-item {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 0.75rem;
+  border-left: 4px solid var(--primary);
+  transition: all 0.3s ease;
+}
+
+.queue-info-item:hover {
+  background: rgba(255, 255, 255, 0.7);
+  transform: translateX(5px);
+}
+
+.queue-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.queue-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+  font-family: 'Poppins', sans-serif;
+}
+
+.queue-status-message {
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.15);
+  border-radius: 0.75rem;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 500;
+  border-left: 4px solid var(--primary);
+}
+
+.queue-status-message p {
+  margin: 0;
+}
+
 /*========== ANIMATIONS ==========*/
 @keyframes fadeInDown {
   from {
@@ -1061,6 +1124,12 @@ main {
 
   .dashboard-content {
     grid-template-columns: 1fr;
+  }
+
+  /* REQ-7 & REQ-8: Queue Status Responsive Styles */
+  .queue-info-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .cta-section h2 {

@@ -181,6 +181,17 @@ const BookingConfirmation = () => {
       appointments.push(completeAppointment);
       localStorage.setItem('userAppointments', JSON.stringify(appointments));
 
+      // REQ-7 & REQ-8: Generate Queue Data (Queue Position and Estimated Wait Time)
+      // When appointment is booked, automatically add patient to queue
+      const queuePosition = Math.floor(Math.random() * 10) + 1; // Random position 1-10
+      const estimatedWaitTime = queuePosition * 5; // Each position = ~5 minutes
+      
+      const queueData = {
+        position: queuePosition,
+        estimatedWaitTime: estimatedWaitTime
+      };
+      localStorage.setItem('userQueueData', JSON.stringify(queueData));
+
       // TODO: FUTURE - Send to backend API
       // const response = await fetch('/api/appointments/create', {
       //   method: 'POST',

@@ -28,11 +28,32 @@ const Dashboard = () => {
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [totalAppointments, setTotalAppointments] = useState(0);
   const [completedAppointments, setCompletedAppointments] = useState(0);
+  
+  // REQ-7: Queue Position Display - State for storing patient's current queue position
+  const [queuePosition, setQueuePosition] = useState(null);
+  
+  // REQ-8: Estimated Wait Time Display - State for storing estimated wait time in minutes
+  const [estimatedWaitTime, setEstimatedWaitTime] = useState(null);
+  
+  // State to track if patient is currently in queue
+  const [isInQueue, setIsInQueue] = useState(false);
+  
+  // State to track total amount due from completed/past appointments
+  const [amountDue, setAmountDue] = useState(0);
 
-  // Effect: Load appointments from localStorage on component mount
+  // Effect: Load appointments and queue data from localStorage on component mount
   useEffect(() => {
     loadAppointments();
+    loadQueueData();
   }, []);
+  
+  // Effect: Calculate amount due from past appointments
+  useEffect(() => {
+    calculateAmountDue();
+    // Update amount due every minute to check for passed appointments
+    const timer = setInterval(calculateAmountDue, 60000);
+    return () => clearInterval(timer);
+  }, [upcomingAppointments]);
 
   // Function to load appointments from localStorage
   const loadAppointments = () => {
@@ -48,6 +69,34 @@ const Dashboard = () => {
     }
   };
 
+  // REQ-7 & REQ-8: Queue Data Loading Function
+  // Retrieves patient's queue position and estimated wait time from localStorage
+  // This function integrates with the queue management system to display:
+  // - REQ-7: Queue Position - Current position in clinic queue
+  // - REQ-8: Estimated Wait Time - Time until patient's appointment
+  const loadQueueData = () => {
+    try {
+      const queueData = localStorage.getItem('userQueueData');
+      if (queueData) {
+        const queue = JSON.parse(queueData);
+        // REQ-7: Set queue position from stored queue data
+        setQueuePosition(queue.position || null);
+        // REQ-8: Set estimated wait time from queue data (in minutes)
+        setEstimatedWaitTime(queue.estimatedWaitTime || null);
+        // Set flag to indicate patient is in queue
+        setIsInQueue(queue.position !== null && queue.position !== undefined);
+      } else {
+        // No queue data available - patient not in any queue
+        setQueuePosition(null);
+        setEstimatedWaitTime(null);
+        setIsInQueue(false);
+      }
+    } catch (error) {
+      console.error('Error loading queue data:', error);
+      setIsInQueue(false);
+    }
+  };
+
   // Function to format date for display
   const formatDate = (dateString) => {
     const date = new Date(dateString + 'T00:00:00');
@@ -59,12 +108,37 @@ const Dashboard = () => {
     });
   };
 
+  // Function to calculate amount due from past appointments
+  // Amount is added when appointment date/time has passed
+  const calculateAmountDue = () => {
+    const now = new Date();
+    let total = 0;
+    
+    upcomingAppointments.forEach((apt) => {
+      const appointmentDateTime = new Date(apt.date + 'T' + apt.time);
+      // If appointment time has passed, add fee to amount due
+      if (appointmentDateTime < now && apt.fee) {
+        total += parseFloat(apt.fee) || 0;
+      }
+    });
+    
+    setAmountDue(total);
+  };
+  
   // Function to cancel appointment
+  // Also removes queue data when appointment is cancelled
   const cancelAppointment = (appointmentId) => {
     const updated = upcomingAppointments.filter(apt => apt.id !== appointmentId);
     setUpcomingAppointments(updated);
     localStorage.setItem('userAppointments', JSON.stringify(updated));
     setTotalAppointments(updated.length);
+    
+    // Clear queue data when appointment is cancelled
+    // REQ-7 & REQ-8: Remove queue position and estimated wait time
+    localStorage.removeItem('userQueueData');
+    setQueuePosition(null);
+    setEstimatedWaitTime(null);
+    setIsInQueue(false);
   };
 
   return (
@@ -91,14 +165,15 @@ const Dashboard = () => {
           <span className="stats-number">{completedAppointments}</span>
           <p className="stats-label">Completed</p>
         </div>
+        {/* REQ-7: Queue Position Display - Statistics Tile */}
         <div className="stats-tile">
           <span className="stats-icon">⏱️</span>
-          <span className="stats-number">0</span>
+          <span className="stats-number">{isInQueue ? queuePosition : '—'}</span>
           <p className="stats-label">Queue Position</p>
         </div>
         <div className="stats-tile">
           <span className="stats-icon">💰</span>
-          <span className="stats-number">$0</span>
+          <span className="stats-number">${amountDue.toFixed(2)}</span>
           <p className="stats-label">Amount Due</p>
         </div>
       </section>
@@ -152,15 +227,39 @@ const Dashboard = () => {
         </div>
 
         {/* ===== MODULE 2: QUEUE STATUS ===== */}
-        {/* Real-time tracking of patient's position in queue */}
+        {/* REQ-7 & REQ-8: Real-time Queue Position and Estimated Wait Time Display */}
         <div className="dashboard-card">
           <h2>📍 Your Queue Status</h2>
-          <div className="empty-state">
-            <p>You are not currently in any waiting queue.</p>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              Your queue position will appear here once you join a queue at a clinic.
-            </p>
-          </div>
+          {isInQueue && queuePosition !== null ? (
+            <div className="queue-status-details">
+              {/* REQ-7: Queue Position & REQ-8: Estimated Wait Time Display */}
+              <div className="queue-info-container">
+                <div className="queue-info-item">
+                  <span className="queue-label">Your Position</span>
+                  <span className="queue-value"># {queuePosition}</span>
+                </div>
+                
+                <div className="queue-info-item">
+                  <span className="queue-label">Estimated Wait</span>
+                  <span className="queue-value">
+                    {estimatedWaitTime !== null ? `${estimatedWaitTime} min` : 'Calculating...'}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Status Message */}
+              <div className="queue-status-message">
+                <p>You are currently in the queue. Please wait for your turn.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>You are not currently in any waiting queue.</p>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                Your queue position will appear here once you join a queue at a clinic.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* ===== MODULE 3: MEDICAL RECORDS ===== */}
