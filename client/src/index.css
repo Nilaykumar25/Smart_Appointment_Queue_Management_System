@@ -1377,6 +1377,36 @@ main {
   transform: translateY(0);
 }
 
+/**
+ * REQ-6: Manage Appointment Button
+ * Opens reschedule/cancel modal with deadline validation
+ * Replaces direct cancel functionality for better UX
+ */
+.manage-btn {
+  padding: 0.65rem 1.25rem;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.manage-btn:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.manage-btn:active {
+  transform: translateY(0);
+}
+
 .status-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
@@ -1455,6 +1485,8 @@ main {
     width: 100%;
   }
 
+  /* REQ-6: Manage button responsive styling for tablets */
+  .manage-btn,
   .cancel-btn {
     flex: 1;
     min-width: 150px;
@@ -1500,6 +1532,8 @@ main {
     gap: 0.75rem;
   }
 
+  /* REQ-6: Manage button responsive styling for mobile */
+  .manage-btn,
   .cancel-btn {
     padding: 0.6rem 1rem;
     font-size: 0.85rem;

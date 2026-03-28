@@ -19,6 +19,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import RescheduleCancel from '../components/RescheduleCancel';
 
 const Dashboard = () => {
   // Get current authenticated user from context
@@ -40,6 +41,11 @@ const Dashboard = () => {
   
   // State to track total amount due from completed/past appointments
   const [amountDue, setAmountDue] = useState(0);
+
+  // REQ-6: State management for Reschedule/Cancel modal
+  // Tracks if modal is open and which appointment is being managed
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
 
   // Effect: Load appointments and queue data from localStorage on component mount
   useEffect(() => {
@@ -141,6 +147,70 @@ const Dashboard = () => {
     setIsInQueue(false);
   };
 
+  /**
+   * REQ-6: Open Reschedule/Cancel Modal
+   * Opens the modal and selects the appointment to manage
+   * Triggered by "Manage Appointment" or "Reschedule/Cancel" button
+   */
+  const handleOpenRescheduleModal = (appointment) => {
+    setSelectedAppointment(appointment);
+    setRescheduleModalOpen(true);
+  };
+
+  /**
+   * REQ-6: Handle Reschedule Action
+   * Called when user confirms rescheduling an appointment
+   * Updates the appointment with new date/time and saves to localStorage
+   */
+  const handleRescheduleAppointment = (rescheduledAppointment) => {
+    // Find and update the appointment in the list
+    const updatedAppointments = upcomingAppointments.map(apt =>
+      apt.id === rescheduledAppointment.id ? rescheduledAppointment : apt
+    );
+    
+    // Update state and persist to localStorage
+    setUpcomingAppointments(updatedAppointments);
+    localStorage.setItem('userAppointments', JSON.stringify(updatedAppointments));
+    
+    // Reset modal state
+    setRescheduleModalOpen(false);
+    setSelectedAppointment(null);
+    
+    // Show success message (could be enhanced with a toast notification)
+    console.log('Appointment rescheduled successfully:', rescheduledAppointment);
+  };
+
+  /**
+   * REQ-6: Handle Cancel Action
+   * Called when user confirms canceling an appointment
+   * Removes appointment from list and clears queue data
+   */
+  const handleCancelAppointmentFromModal = (cancellationRecord) => {
+    // Remove the cancelled appointment from the list
+    const updatedAppointments = upcomingAppointments.filter(
+      apt => apt.id !== cancellationRecord.appointmentId
+    );
+    
+    // Update state and persist to localStorage
+    setUpcomingAppointments(updatedAppointments);
+    localStorage.setItem('userAppointments', JSON.stringify(updatedAppointments));
+    setTotalAppointments(updatedAppointments.length);
+    
+    // Clear queue data when appointment is cancelled
+    // REQ-7 & REQ-8: Remove queue position and estimated wait time
+    localStorage.removeItem('userQueueData');
+    setQueuePosition(null);
+    setEstimatedWaitTime(null);
+    setIsInQueue(false);
+    
+    // Reset modal state
+    setRescheduleModalOpen(false);
+    setSelectedAppointment(null);
+    
+    // Show success message (could be enhanced with a toast notification)
+    console.log('Appointment cancelled successfully:', cancellationRecord);
+  };
+
   return (
     <div className="dashboard-container">
       {/* ===== DASHBOARD HEADER ===== */}
@@ -205,11 +275,13 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="appointment-actions">
+                    {/* REQ-6: Open Reschedule/Cancel modal instead of direct cancel */}
                     <button 
-                      className="cancel-btn"
-                      onClick={() => cancelAppointment(appointment.id)}
+                      className="manage-btn"
+                      onClick={() => handleOpenRescheduleModal(appointment)}
+                      title="Reschedule or cancel this appointment"
                     >
-                      Cancel Appointment
+                      Manage Appointment
                     </button>
                   </div>
                 </div>
@@ -286,6 +358,20 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* REQ-6: Reschedule and Cancel Modal Component */}
+      {/* Opens when user clicks "Manage Appointment" button on an appointment */}
+      {/* Handles both reschedule and cancel actions with deadline validation */}
+      <RescheduleCancel
+        appointment={selectedAppointment}
+        isOpen={rescheduleModalOpen}
+        onClose={() => {
+          setRescheduleModalOpen(false);
+          setSelectedAppointment(null);
+        }}
+        onReschedule={handleRescheduleAppointment}
+        onCancel={handleCancelAppointmentFromModal}
+      />
     </div>
   );
 };
