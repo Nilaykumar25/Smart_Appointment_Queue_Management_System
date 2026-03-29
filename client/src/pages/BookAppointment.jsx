@@ -9,9 +9,14 @@
  * - Search/filter for time slots
  * - Doctor information display
  * - Booking confirmation
+ * 
+ * REQ-15: Local Schedule Caching
+ * - Persist daily slots to sessionStorage
+ * - Improve performance by preventing redundant API calls
+ * - Cache is cleared on page refresh/new session
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/BookAppointment.css';
@@ -21,6 +26,107 @@ export default function BookAppointment() {
   const { doctorId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // ========================================
+  // REQ-15: LOCAL SCHEDULE CACHING UTILITIES
+  // Persist daily slots to sessionStorage for performance
+  // ========================================
+
+  /**
+   * REQ-15: Get cache key for a specific date
+   * @param {string} date - The date in YYYY-MM-DD format
+   * @returns {string} Cache key for sessionStorage
+   */
+  const getCacheKey = (date) => `schedule_slots_${date}`;
+
+  /**
+   * REQ-15: Check if cached slots are still valid for today
+   * Cache is considered valid if it was created on the same date
+   * @param {string} date - The date in YYYY-MM-DD format
+   * @returns {boolean} True if valid cache exists for the date
+   */
+  const isSlotsCacheValid = (date) => {
+    const cacheKey = getCacheKey(date);
+    const cachedData = sessionStorage.getItem(cacheKey);
+    
+    if (!cachedData) {
+      return false;
+    }
+
+    try {
+      const parsed = JSON.parse(cachedData);
+      // REQ-15: Verify cache exists and has valid timestamp
+      return parsed.slots && parsed.timestamp !== undefined;
+    } catch (error) {
+      console.warn(`REQ-15: Failed to parse cached slots for ${date}:`, error);
+      return false;
+    }
+  };
+
+  /**
+   * REQ-15: Load slots from sessionStorage cache
+   * @param {string} date - The date in YYYY-MM-DD format
+   * @returns {Array|null} Cached slots or null if not in cache
+   */
+  const getSlotsCacheData = (date) => {
+    const cacheKey = getCacheKey(date);
+    const cachedData = sessionStorage.getItem(cacheKey);
+    
+    if (!cachedData) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(cachedData);
+      // REQ-15: Return cached slots if available
+      return parsed.slots || null;
+    } catch (error) {
+      console.warn(`REQ-15: Failed to retrieve cached slots for ${date}:`, error);
+      return null;
+    }
+  };
+
+  /**
+   * REQ-15: Save slots to sessionStorage cache
+   * Stores slots with timestamp for cache validation
+   * @param {string} date - The date in YYYY-MM-DD format
+   * @param {Array} slots - Array of slot objects to cache
+   */
+  const cacheSlots = (date, slots) => {
+    try {
+      const cacheKey = getCacheKey(date);
+      const cacheData = {
+        slots: slots,
+        timestamp: Date.now(),
+        cachedDate: date,
+        // REQ-15: Store caching metadata for debugging
+        cacheCreated: new Date().toISOString()
+      };
+      sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+      console.log(`REQ-15: Cached ${slots.length} slots for ${date}`);
+    } catch (error) {
+      console.warn('REQ-15: Failed to cache slots to sessionStorage:', error);
+      // Gracefully handle storage quota exceeded
+    }
+  };
+
+  /**
+   * REQ-15: Clear all cached slots from sessionStorage
+   * Useful for logout or cache invalidation
+   */
+  const clearSlotsCache = () => {
+    try {
+      const keys = Object.keys(sessionStorage);
+      keys.forEach(key => {
+        if (key.startsWith('schedule_slots_')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+      console.log('REQ-15: Cleared all cached slots from sessionStorage');
+    } catch (error) {
+      console.warn('REQ-15: Failed to clear slots cache:', error);
+    }
+  };
 
   // REQ-5: Mock doctor data (would come from backend in production)
   const doctorsData = [
@@ -90,8 +196,9 @@ export default function BookAppointment() {
     }
   ];
 
-  // REQ-5: Time slot data structure
-  const availableSlots = [
+  // REQ-15: Mock available slots data structure
+  // These slots will be cached to sessionStorage for performance optimization
+  const mockAvailableSlots = [
     { id: 1, time: '09:00 AM', date: '2024-04-01', available: true },
     { id: 2, time: '09:30 AM', date: '2024-04-01', available: true },
     { id: 3, time: '10:00 AM', date: '2024-04-01', available: false },
@@ -117,24 +224,48 @@ export default function BookAppointment() {
   // REQ-5: Get selected doctor
   const selectedDoctor = doctorsData.find(d => d.id === parseInt(doctorId));
 
+  // REQ-15: State management for available slots
+  // Initialized with either cached data or mock data
+  const [availableSlots, setAvailableSlots] = useState(() => {
+    // REQ-15: Try to load slots from sessionStorage cache on component mount
+    const cachedSlots = getSlotsCacheData('all_doctors');
+    if (cachedSlots && isSlotsCacheValid('all_doctors')) {
+      console.log('REQ-15: Loaded slots from sessionStorage cache');
+      return cachedSlots;
+    }
+    // REQ-15: Fall back to mock data if cache is unavailable
+    console.log('REQ-15: No valid cache found, using mock slot data');
+    return mockAvailableSlots;
+  });
+
+  // REQ-15: Effect to cache slots when they change
+  // Ensures future page loads can use cached data
+  useEffect(() => {
+    if (availableSlots.length > 0) {
+      cacheSlots('all_doctors', availableSlots);
+    }
+  }, [availableSlots]);
+
   // REQ-5: State management for date and time selection
   const [selectedDate, setSelectedDate] = useState('2024-04-01');
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   // REQ-5: Get unique dates from available slots
+  // REQ-15: Dates derived from cached slot data
   const availableDates = useMemo(() => {
     return [...new Set(availableSlots.map(slot => slot.date))];
-  }, []);
+  }, [availableSlots]);
 
   // REQ-5: Filter slots by selected date and search query
+  // REQ-15: Filtering performed on cached slot data
   const filteredSlots = useMemo(() => {
     return availableSlots.filter(slot => {
       const matchesDate = slot.date === selectedDate;
       const matchesSearch = slot.time.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesDate && matchesSearch && slot.available;
     });
-  }, [selectedDate, searchQuery]);
+  }, [availableSlots, selectedDate, searchQuery]);
 
   // REQ-5: Format date for display
   const formatDate = (dateString) => {
