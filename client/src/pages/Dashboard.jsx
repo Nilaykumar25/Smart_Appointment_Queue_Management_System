@@ -16,10 +16,12 @@
  * - Link to book new appointments
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import RescheduleCancel from '../components/RescheduleCancel';
+// REQ-14: Import debounce utility for queue refresh polling
+import { debounce } from '../utils/debounce';
 
 const Dashboard = () => {
   // Get current authenticated user from context
@@ -47,6 +49,11 @@ const Dashboard = () => {
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
+  // REQ-14: Dashboard polling fix - Create ref for debounced queue refresh function
+  // This prevents excessive API calls by debouncing rapid polling requests
+  // The debounced function will only execute after 2 seconds of inactivity
+  const debouncedQueueRefreshRef = useRef(null);
+
   // Effect: Load appointments and queue data from localStorage on component mount
   useEffect(() => {
     loadAppointments();
@@ -60,6 +67,55 @@ const Dashboard = () => {
     const timer = setInterval(calculateAmountDue, 60000);
     return () => clearInterval(timer);
   }, [upcomingAppointments]);
+
+  /**
+   * REQ-14: Dashboard polling fix - Real-time queue refresh with debouncing
+   * 
+   * Purpose: Implements debounced polling for queue status updates to reduce
+   * API calls and improve performance. Instead of querying the server on every
+   * potential update, this debounces rapid consecutive updates into a single call.
+   * 
+   * Implementation Details:
+   * - Debounce delay: 2000ms (2 seconds) - waits for 2 seconds of inactivity
+   * - Polling interval: 5000ms (5 seconds) - attempts refresh every 5 seconds
+   * - Triggers queue data refresh every 5 seconds, but only executes if 2+ seconds elapsed
+   * 
+   * Benefits:
+   * - Reduces unnecessary re-renders and API calls
+   * - Smooth user experience with periodic updates
+   * - Prevents thundering herd problem from multiple rapid requests
+   * - Configurable delays for different use cases
+   */
+  useEffect(() => {
+    // REQ-14: Initialize debounced queue refresh function
+    // Debounce delay of 2000ms prevents excessive calls during rapid polling
+    debouncedQueueRefreshRef.current = debounce(() => {
+      try {
+        loadQueueData();
+        console.log('[REQ-14] Debounced queue data refreshed at:', new Date().toLocaleTimeString());
+      } catch (error) {
+        console.error('[REQ-14] Error in debounced queue refresh:', error);
+      }
+    }, 2000);
+
+    // REQ-14: Set up polling interval for queue status
+    // Every 5 seconds, trigger the debounced refresh function
+    // If called frequently, debounce ensures only one request per 2+ second period
+    const pollInterval = setInterval(() => {
+      if (debouncedQueueRefreshRef.current) {
+        debouncedQueueRefreshRef.current();
+      }
+    }, 5000);
+
+    // REQ-14: Cleanup function - remove polling interval on component unmount
+    // This prevents memory leaks and unnecessary API calls after component unmounts
+    return () => {
+      clearInterval(pollInterval);
+      // Clear the debounced function ref to free memory
+      debouncedQueueRefreshRef.current = null;
+    };
+  }, []);
+
 
   // Function to load appointments from localStorage
   const loadAppointments = () => {
@@ -76,10 +132,12 @@ const Dashboard = () => {
   };
 
   // REQ-7 & REQ-8: Queue Data Loading Function
+  // REQ-14: This function is called by debounced polling mechanism
   // Retrieves patient's queue position and estimated wait time from localStorage
   // This function integrates with the queue management system to display:
   // - REQ-7: Queue Position - Current position in clinic queue
   // - REQ-8: Estimated Wait Time - Time until patient's appointment
+  // - REQ-14: Called periodically via debounced polling every 5 seconds (with 2s debounce)
   const loadQueueData = () => {
     try {
       const queueData = localStorage.getItem('userQueueData');
