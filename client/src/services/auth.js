@@ -3,6 +3,16 @@
 const BASE_URL = 'http://localhost:5000/api';
 
 export async function login(email, password) {
+  // TEMP MOCK — remove when backend is running
+  // TODO: REQ-1 — connect to real backend when server DB is ready
+  if (email && password) {
+    const mockRole = email.includes('admin') ? 'admin' : 'staff';
+    localStorage.setItem('saqms_token', 'mock.jwt.token');
+    localStorage.setItem('saqms_role', mockRole);
+    localStorage.setItem('saqms_name', 'Amitansh');
+    return { success: true, role: mockRole, name: 'Amitansh' };
+  }
+
   try {
     const res = await fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
