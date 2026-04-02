@@ -4,12 +4,12 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import QueueDashboard from './pages/staff/QueueDashboard';
 import BroadcastAlertForm from './pages/staff/BroadcastAlertForm';
+import ScheduleConfigUI from './pages/admin/ScheduleConfigUI';
 
 // ---------------------------------------------------------------------------
 // Placeholder pages — will be replaced with real imports in later tasks
 // ---------------------------------------------------------------------------
-const ScheduleConfigUI = () => <div className="p-4"><h2>Schedule Configuration</h2><p>Coming in Task 6</p></div>;
-const ReportsPage      = () => <div className="p-4"><h2>Reports &amp; Export</h2><p>Coming in Task 7</p></div>;
+const ReportsPage = () => <div className="p-4"><h2>Reports &amp; Export</h2><p>Coming in Task 7</p></div>;
 // ---------------------------------------------------------------------------
 
 function App() {

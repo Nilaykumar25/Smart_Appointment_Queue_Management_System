@@ -1,0 +1,49 @@
+.schedule-page h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 24px;
+}
+
+.card {
+  margin-bottom: 24px;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.card-header {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #2d3748;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 20px;
+}
+
+.working-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.blackout-item-date {
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.blackout-item-reason {
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+.field-error {
+  color: #e53e3e;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+.success-msg {
+  color: #38a169;
+  font-size: 0.875rem;
+  margin-top: 8px;
+}
