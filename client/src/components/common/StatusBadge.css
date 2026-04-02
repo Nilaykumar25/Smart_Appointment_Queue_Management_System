@@ -1,0 +1,9 @@
+.badge-consultation {
+  background: #fd7e14;
+  color: white;
+}
+
+.status-badge {
+  font-size: 0.8rem;
+  padding: 6px 10px;
+}
