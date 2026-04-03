@@ -4,17 +4,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiCall } from '../../services/api';
+import { useQueue } from '../../context/QueueContext';
 import StatusBadge from '../../components/common/StatusBadge';
 import './QueueDashboard.css';
-
-// TODO: Remove mock data when backend is ready
-const MOCK_PATIENTS = [
-  { appointmentId: 'A001', patientName: 'Rahul Sharma',  queuePosition: 1, scheduledTime: '10:00 AM', status: 'Booked'          },
-  { appointmentId: 'A002', patientName: 'Priya Singh',   queuePosition: 2, scheduledTime: '10:15 AM', status: 'Arrived'         },
-  { appointmentId: 'A003', patientName: 'Amit Verma',    queuePosition: 3, scheduledTime: '10:30 AM', status: 'In-Consultation' },
-  { appointmentId: 'A004', patientName: 'Sneha Patel',   queuePosition: 4, scheduledTime: '10:45 AM', status: 'Completed'       },
-  { appointmentId: 'A005', patientName: 'Rohan Das',     queuePosition: 5, scheduledTime: '11:00 AM', status: 'No-Show'         },
-];
 
 const NEXT_STATUS = {
   'Booked_Mark Arrived':          'Arrived',
@@ -63,7 +55,7 @@ function ActionButtons({ patient, updatingId, onAction }) {
 }
 
 function QueueDashboard() {
-  const [patients, setPatients]     = useState([]);
+  const { patients, updateStatus, resetPatients } = useQueue();
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
   const [updatingId, setUpdatingId] = useState(null);
@@ -73,14 +65,14 @@ function QueueDashboard() {
     setError('');
     try {
       const data = await apiCall('/queue/today');
-      setPatients(data);
+      resetPatients(data);
     } catch {
       // TODO: Remove mock fallback when backend is ready
-      setPatients(MOCK_PATIENTS);
+      // Context already holds INITIAL_PATIENTS — nothing to reset
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [resetPatients]);
 
   // Initial load + 30-second auto-refresh
   useEffect(() => {
@@ -99,11 +91,7 @@ function QueueDashboard() {
     } catch {
       // API not ready — update locally
     }
-    setPatients((prev) =>
-      prev.map((p) =>
-        p.appointmentId === appointmentId ? { ...p, status: newStatus } : p
-      )
-    );
+    updateStatus(appointmentId, newStatus);
     setUpdatingId(null);
   }
 

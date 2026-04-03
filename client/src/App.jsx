@@ -5,16 +5,13 @@ import LoginPage from './pages/LoginPage';
 import QueueDashboard from './pages/staff/QueueDashboard';
 import BroadcastAlertForm from './pages/staff/BroadcastAlertForm';
 import ScheduleConfigUI from './pages/admin/ScheduleConfigUI';
-
-// ---------------------------------------------------------------------------
-// Placeholder pages — will be replaced with real imports in later tasks
-// ---------------------------------------------------------------------------
-const ReportsPage = () => <div className="p-4"><h2>Reports &amp; Export</h2><p>Coming in Task 7</p></div>;
-// ---------------------------------------------------------------------------
+import ReportsPage from './pages/admin/ReportsPage';
+import { QueueProvider } from './context/QueueContext';
 
 function App() {
   return (
-    <BrowserRouter>
+    <QueueProvider>
+      <BrowserRouter>
       <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
@@ -36,7 +33,8 @@ function App() {
           </Route>
         </Route>
       </Routes>
-    </BrowserRouter>
+      </BrowserRouter>
+    </QueueProvider>
   );
 }
 
