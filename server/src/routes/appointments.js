@@ -43,3 +43,32 @@ router.post('/', async (req, res) => {
 });
 
 module.exports = router;
+
+// Implements: REQ-7 --- see SRS Section 3.7
+// POST /queue --- called internally after booking is confirmed
+router.post('/queue', async (req, res) => {
+  const { appointment_id, patient_id } = req.body;
+  const client = await db.getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    const { rows: pos } = await client.query(
+      SELECT COUNT(*) AS position FROM Queue WHERE status = 'waiting'
+    );
+
+    const { rows: entry } = await client.query(
+      INSERT INTO Queue (appointment_id, patient_id, position, status)
+       VALUES (, , , 'waiting') RETURNING *,
+      [appointment_id, patient_id, parseInt(pos[0].position) + 1]
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json(entry[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'Queue entry failed' });
+  } finally {
+    client.release();
+  }
+});
