@@ -173,3 +173,48 @@ router.patch('/:id/reschedule', async (req, res) => {
     client.release();
   }
 });
+
+// Implements: REQ-6 --- see SRS Section 3.6
+// DELETE /appointments/:id --- cancellation with 2-hour deadline check
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  const client = await db.getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    const { rows: appt } = await client.query(
+      SELECT * FROM Appointments WHERE id = , [id]
+    );
+
+    if (appt.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    const appointmentTime = new Date(appt[0].scheduled_at);
+    const now = new Date();
+    const diffHours = (appointmentTime - now) / (1000 * 60 * 60);
+
+    if (diffHours < 2) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Cannot cancel within 2 hours of appointment' });
+    }
+
+    await client.query(
+      UPDATE Appointments SET status = 'cancelled' WHERE id = , [id]
+    );
+
+    await client.query(
+      DELETE FROM Queue WHERE appointment_id = , [id]
+    );
+
+    await client.query('COMMIT');
+    res.json({ message: 'Appointment cancelled successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'Cancellation failed' });
+  } finally {
+    client.release();
+  }
+});
