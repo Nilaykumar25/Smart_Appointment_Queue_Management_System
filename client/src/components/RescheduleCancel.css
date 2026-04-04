@@ -1,0 +1,752 @@
+/**
+ * ========================================
+ * RESCHEDULE AND CANCEL MODAL STYLES
+ * REQ-6: Reschedule and Cancel UI with Deadline Validation
+ * ========================================
+ * 
+ * This stylesheet provides comprehensive styling for:
+ * - Modal overlay and container
+ * - Appointment summary display
+ * - REQ-6: Deadline validation status indicators
+ * - Action selection buttons
+ * - Reschedule form with date/time selection
+ * - Cancel form with reason textarea
+ * - Confirmation dialog
+ * - Responsiveness for mobile/tablet devices
+ * 
+ * Color Scheme:
+ * - Primary: #667eea (purple) - Actions, positive
+ * - Secondary: #764ba2 (deep purple)
+ * - Danger: #e74c3c (red) - Cancellation actions
+ * - Warning: #f39c12 (orange) - Deadline warnings
+ * - Success: #27ae60 (green) - Safe status
+ * - Background: #f5f7fa (light)
+ * - Text: #2c3e50 (dark)
+ * 
+ * ========================================
+ */
+
+/* ===== MODAL OVERLAY ===== */
+/* Semi-transparent background that appears behind modal */
+
+.reschedule-cancel-overlay {
+  /* Positioning */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  
+  /* Stacking and appearance */
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.5);
+  
+  /* Flexbox centering */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Animation */
+  animation: fadeIn 0.2s ease-in;
+}
+
+/* Fade-in animation for modal appearance */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ===== MODAL CONTAINER ===== */
+/* Main modal window with content */
+
+.reschedule-cancel-modal {
+  /* Dimensions */
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  
+  /* Styling */
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  
+  /* Animation for entrance */
+  animation: slideUp 0.3s ease-out;
+  
+  /* Overflow handling */
+  overflow: hidden;
+}
+
+/* Slide-up animation for modal entrance */
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ===== MODAL HEADER ===== */
+/* Title and close button at top of modal */
+
+.modal-header {
+  /* Layout */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  /* Styling */
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  
+  /* Prevent text selection */
+  user-select: none;
+}
+
+.modal-header h2 {
+  /* Typography */
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Close button in header */
+.close-btn {
+  /* Dimensions and positioning */
+  width: 36px;
+  height: 36px;
+  
+  /* Styling */
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 1.5rem;
+  
+  /* Layout and centering */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Cursor and transitions */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  /* Accessibility */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: rotate(90deg);
+}
+
+.close-btn:active {
+  transform: rotate(90deg) scale(0.95);
+}
+
+/* ===== MODAL CONTENT ===== */
+/* Scrollable content area */
+
+.reschedule-cancel-modal > div:not(.modal-header):not(.reschedule-cancel-overlay) {
+  /* Use flex to allow scrolling */
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ===== APPOINTMENT SUMMARY ===== */
+/* Display of current appointment details */
+
+.appointment-summary {
+  /* Spacing */
+  padding: 1.5rem;
+  
+  /* Styling */
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.appointment-summary h3 {
+  /* Typography */
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.summary-details {
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.summary-details p {
+  /* Typography and spacing */
+  margin: 0;
+  font-size: 0.95rem;
+  color: #555;
+  
+  /* Layout */
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ===== REQ-6: DEADLINE STATUS ===== */
+/* Displays deadline validation status and time remaining */
+
+.deadline-status {
+  /* Spacing */
+  margin: 1.5rem 1.5rem 0 1.5rem;
+  padding: 1rem 1.25rem;
+  
+  /* Styling */
+  border-radius: 8px;
+  border-left: 4px solid;
+  
+  /* Typography */
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Safe status: User can reschedule/cancel (more than 24 hours) */
+.deadline-status.safe {
+  background-color: #d4edda;
+  border-color: #27ae60;
+  color: #155724;
+}
+
+.deadline-status.safe p {
+  margin: 0.25rem 0;
+  color: #155724;
+}
+
+.deadline-status.safe small {
+  /* Secondary text styling */
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #0c5420;
+  font-weight: 400;
+}
+
+/* Warning status: User cannot reschedule/cancel (less than 24 hours) */
+.deadline-status.warning {
+  background-color: #fff3cd;
+  border-color: #f39c12;
+  color: #856404;
+}
+
+.deadline-status.warning p {
+  margin: 0.25rem 0;
+  color: #856404;
+}
+
+.deadline-status.warning small {
+  /* Secondary text styling */
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #6e5401;
+  font-weight: 400;
+}
+
+/* ===== ERROR MESSAGE ===== */
+/* Display validation or operation errors */
+
+.error-message {
+  /* Spacing */
+  margin: 1.5rem 1.5rem 0 1.5rem;
+  padding: 1rem 1.25rem;
+  
+  /* Styling */
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  color: #721c24;
+}
+
+.error-message p {
+  /* Typography */
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* ===== SECTION SUBTITLE ===== */
+/* Secondary title for form sections */
+
+.section-subtitle {
+  /* Typography */
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2c3e50;
+  
+  /* Spacing */
+  margin: 0 0 1rem 0;
+}
+
+/* ===== ACTION SELECTION ===== */
+/* Initial choice between reschedule and cancel */
+
+.action-selection {
+  /* Spacing */
+  padding: 2rem 1.5rem;
+  
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.action-buttons {
+  /* Layout - responsive grid */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Individual action button */
+.action-btn {
+  /* Spacing */
+  padding: 1rem;
+  
+  /* Styling */
+  background-color: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  
+  /* Cursor and transitions */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  /* Layout and centering */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  
+  /* Typography */
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Reschedule button styling */
+.action-btn.reschedule-btn {
+  color: #667eea;
+}
+
+.action-btn.reschedule-btn:hover:not(:disabled) {
+  background-color: #f0f3ff;
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+/* Cancel button styling */
+.action-btn.cancel-btn {
+  color: #e74c3c;
+}
+
+.action-btn.cancel-btn:hover:not(:disabled) {
+  background-color: #ffe8e5;
+  border-color: #e74c3c;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.15);
+}
+
+/* Button icon/emoji */
+.btn-icon {
+  /* Typography and size */
+  font-size: 1.5rem;
+  display: block;
+}
+
+/* Button small text */
+.action-btn small {
+  /* Typography */
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #999;
+}
+
+/* Disabled state */
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== FORMS ===== */
+/* Styling for reschedule and cancel forms */
+
+.reschedule-form,
+.cancel-form {
+  /* Spacing */
+  padding: 1.5rem;
+  
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Form group - label + input wrapper */
+.form-group {
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  /* Typography */
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  
+  /* Accessibility */
+  display: block;
+}
+
+/* Form inputs (text, date, select, textarea) */
+.form-input {
+  /* Dimensions */
+  padding: 0.75rem;
+  
+  /* Styling */
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: white;
+  color: #333;
+  
+  /* Typography */
+  font-size: 0.95rem;
+  font-family: inherit;
+  
+  /* Cursor */
+  cursor: pointer;
+  
+  /* Transitions */
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  
+  /* Appearance cleanup */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-input:disabled {
+  background-color: #f5f7fa;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.form-group small {
+  /* Typography */
+  font-size: 0.8rem;
+  color: #999;
+  
+  /* Spacing */
+  margin-top: 0.25rem;
+}
+
+/* ===== FORM ACTIONS ===== */
+/* Buttons at bottom of forms */
+
+.form-actions {
+  /* Layout */
+  display: flex;
+  gap: 1rem;
+  
+  /* Spacing */
+  margin-top: 1rem;
+}
+
+/* ===== BUTTONS ===== */
+/* Reusable button styles */
+
+.btn {
+  /* Dimensions */
+  padding: 0.75rem 1.5rem;
+  
+  /* Styling */
+  border: none;
+  border-radius: 6px;
+  
+  /* Typography */
+  font-size: 0.95rem;
+  font-weight: 600;
+  
+  /* Cursor and transitions */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  /* Layout */
+  flex: 1;
+  text-align: center;
+  
+  /* Appearance cleanup */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Primary button - action button (reschedule) */
+.btn-primary {
+  background-color: #667eea;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #5568d3;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Secondary button - cancel/back actions */
+.btn-secondary {
+  background-color: #f0f0f0;
+  color: #2c3e50;
+  border: 1px solid #ddd;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #e9ecef;
+  border-color: #ccc;
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Danger button - destructive action (cancel appointment) */
+.btn-danger {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #c0392b;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.btn-danger:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* ===== CONFIRMATION DIALOG ===== */
+/* Final confirmation before completing action */
+
+.confirmation-dialog {
+  /* Spacing */
+  padding: 2rem 1.5rem;
+  
+  /* Display */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.confirmation-content {
+  /* Content styling */
+}
+
+.confirmation-content h3 {
+  /* Typography */
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.confirmation-details {
+  /* Spacing */
+  padding: 1rem;
+  margin-bottom: 1rem;
+  
+  /* Styling */
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.confirmation-details p {
+  /* Typography and spacing */
+  margin: 0.5rem 0;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.confirmation-details p:first-child {
+  /* First item styling */
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.75rem;
+}
+
+.confirmation-message {
+  /* Typography */
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.5;
+  
+  /* Spacing */
+  margin: 0;
+}
+
+.confirmation-message.warning {
+  /* Warning state styling */
+  color: #c0392b;
+  font-weight: 500;
+}
+
+.confirmation-actions {
+  /* Layout */
+  display: flex;
+  gap: 1rem;
+  
+  /* Spacing */
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+/* Mobile and tablet optimizations */
+
+@media (max-width: 768px) {
+  /* Modal adjustments for tablets */
+  .reschedule-cancel-modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  /* Single column action buttons on mobile */
+  .action-buttons {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Adjust form spacing on mobile */
+  .reschedule-form,
+  .cancel-form {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  /* Modal header spacing */
+  .modal-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1rem;
+  }
+
+  /* Appointment summary spacing */
+  .appointment-summary {
+    padding: 1rem;
+  }
+
+  .summary-details {
+    gap: 0.5rem;
+  }
+
+  /* Button sizing on mobile */
+  .btn {
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  /* Deadline status spacing */
+  .deadline-status {
+    margin: 1rem 1rem 0 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  /* Error message spacing */
+  .error-message {
+    margin: 1rem 1rem 0 1rem;
+    padding: 0.75rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Small mobile device optimizations */
+  .reschedule-cancel-modal {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  /* Modal header for small screens */
+  .modal-header {
+    padding: 1rem;
+  }
+
+  .modal-header h2 {
+    font-size: 0.95rem;
+  }
+
+  /* Smaller buttons on small screens */
+  .btn {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  /* Confirmation actions wrap on very small screens */
+  .confirmation-actions {
+    flex-direction: column;
+  }
+
+  /* Font size adjustments */
+  .form-group label {
+    font-size: 0.85rem;
+  }
+
+  .form-input {
+    font-size: 0.9rem;
+  }
+
+  /* Spacing adjustments */
+  .action-selection {
+    padding: 1.5rem 1rem;
+    gap: 1rem;
+  }
+
+  .confirmation-dialog {
+    padding: 1.5rem 1rem;
+    gap: 1rem;
+  }
+}

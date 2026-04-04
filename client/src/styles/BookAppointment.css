@@ -1,0 +1,590 @@
+/**
+ * ========================================
+ * REQ-5: SLOT PICKER STYLING
+ * Professional Date/Time Booking UI
+ * ========================================
+ */
+
+.booking-container {
+  flex: 1;
+  width: 100%;
+  background: linear-gradient(to bottom, #f9fafb 0%, #ffffff 100%);
+  min-height: 100vh;
+}
+
+/* REQ-5: Hero Section */
+.booking-hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  color: white;
+  padding: 4rem 2rem 3rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.booking-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at top right, rgba(255,255,255,0.1), transparent);
+  pointer-events: none;
+}
+
+.booking-hero h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  font-family: 'Poppins', sans-serif;
+  position: relative;
+  z-index: 1;
+}
+
+.booking-hero p {
+  font-size: 1.2rem;
+  opacity: 0.95;
+  position: relative;
+  z-index: 1;
+  font-weight: 400;
+}
+
+/* REQ-5: Main Booking Section */
+.booking-section {
+  padding: 3rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.booking-content {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+/* REQ-5: Doctor Panel */
+.doctor-panel {
+  background: white;
+  border-radius: 1.2rem;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 100px;
+}
+
+.doctor-panel h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+  font-family: 'Poppins', sans-serif;
+}
+
+.doctor-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.doctor-avatar {
+  font-size: 4rem;
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.doctor-info-content {
+  width: 100%;
+}
+
+.doctor-info-content h3 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.doctor-info-content .specialty {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: inline-block;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.doctor-stats {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.doctor-panel .fee {
+  font-weight: 700;
+  color: #667eea;
+  font-size: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 1rem;
+}
+
+/* REQ-5: Booking Form Panel */
+.booking-form-panel {
+  background: white;
+  border-radius: 1.2rem;
+  padding: 2.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.form-section {
+  margin-bottom: 2.5rem;
+}
+
+.form-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.form-section h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  color: #1f2937;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* REQ-5: Date Picker */
+.date-picker {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.date-btn {
+  flex: 1;
+  min-width: 120px;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  background: white;
+  border-radius: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+}
+
+.date-btn:hover {
+  border-color: #667eea;
+  background: #f0f4ff;
+  transform: translateY(-2px);
+}
+
+.date-btn.active {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.date-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.35rem;
+}
+
+.date-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* REQ-5: Time Slot Search */
+.search-slot-wrapper {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.slot-search-input {
+  width: 100%;
+  padding: 1rem 1.2rem 1rem 2.8rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.8rem;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s ease;
+  color: #1f2937;
+}
+
+.slot-search-input:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.slot-search-input:focus {
+  outline: none;
+  border-color: #667eea;
+  background-color: #f0f4ff;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.slot-search-input::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.search-slot-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1rem;
+  pointer-events: none;
+  color: #6b7280;
+}
+
+.search-results-info {
+  font-size: 0.85rem;
+  color: #667eea;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+/* REQ-5: Time Slots Grid */
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 1rem;
+}
+
+.slot-btn {
+  padding: 1rem 0.75rem;
+  border: 2px solid #e5e7eb;
+  background: white;
+  border-radius: 0.8rem;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #1f2937;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.3px;
+}
+
+.slot-btn:hover {
+  border-color: #667eea;
+  background: #f0f4ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.slot-btn.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.no-slots {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.95rem;
+  padding: 2rem;
+  background: #f9fafb;
+  border-radius: 0.8rem;
+  font-weight: 500;
+}
+
+/* REQ-5: Slot Summary */
+.slot-summary {
+  background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 100%);
+  border: 2px solid #667eea;
+  border-radius: 1rem;
+  padding: 1.75rem;
+  margin: 2rem 0;
+}
+
+.slot-summary h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+}
+
+.summary-item strong {
+  color: #667eea;
+  font-weight: 700;
+}
+
+/* REQ-5: Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.cancel-btn,
+.confirm-btn {
+  flex: 1;
+  padding: 1.1rem 2rem;
+  border-radius: 0.8rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+.cancel-btn {
+  border: 2px solid #e5e7eb;
+  background: white;
+  color: #1f2937;
+}
+
+.cancel-btn:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+  transform: translateY(-2px);
+}
+
+.confirm-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.25);
+}
+
+.confirm-btn:hover:not(.disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.35);
+}
+
+.confirm-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* REQ-5: Success State */
+.success-state {
+  padding: 3rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.success-card {
+  background: white;
+  border-radius: 1.2rem;
+  padding: 3rem;
+  text-align: center;
+  max-width: 600px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.success-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  display: block;
+  animation: bounce 0.6s ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.success-card h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 0.75rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.success-card > p {
+  color: #6b7280;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  font-weight: 500;
+}
+
+.booking-details {
+  background: #f9fafb;
+  border-radius: 0.8rem;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.booking-details p {
+  margin: 0.75rem 0;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.booking-details strong {
+  color: #667eea;
+  font-weight: 700;
+}
+
+.redirect-info {
+  color: #667eea !important;
+  font-weight: 700;
+  margin-top: 1.5rem !important;
+  font-size: 0.95rem;
+}
+
+/* REQ-5: Error State */
+.error-state {
+  padding: 4rem 2rem;
+  text-align: center;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-state h2 {
+  font-size: 2rem;
+  color: #dc2626;
+  margin-bottom: 2rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.back-btn {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 0.8rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+.back-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+/* REQ-5: Responsive Design */
+@media (max-width: 1024px) {
+  .booking-content {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .booking-hero h1 {
+    font-size: 2rem;
+  }
+
+  .booking-section {
+    padding: 1.5rem 1rem;
+  }
+
+  .booking-form-panel {
+    padding: 1.5rem;
+  }
+
+  .date-picker {
+    flex-wrap: wrap;
+  }
+
+  .date-btn {
+    flex: 0 1 calc(50% - 0.5rem);
+  }
+
+  .slots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .cancel-btn,
+  .confirm-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .booking-hero {
+    padding: 2.5rem 1rem;
+  }
+
+  .booking-hero h1 {
+    font-size: 1.5rem;
+  }
+
+  .booking-section {
+    padding: 1rem;
+  }
+
+  .booking-form-panel {
+    padding: 1rem;
+  }
+
+  .doctor-panel {
+    padding: 1.5rem;
+  }
+
+  .date-btn {
+    flex: 0 1 calc(50% - 0.5rem);
+    padding: 0.75rem;
+  }
+
+  .success-card {
+    padding: 2rem 1rem;
+  }
+
+  .success-icon {
+    font-size: 3rem;
+  }
+
+  .success-card h2 {
+    font-size: 1.5rem;
+  }
+}

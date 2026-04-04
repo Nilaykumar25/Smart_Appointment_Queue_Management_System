@@ -1,0 +1,2271 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap');
+
+:root {
+  --primary: #667eea;
+  --primary-hover: #5568d3;
+  --primary-light: #f0f4ff;
+  --primary-dark: #3c366b;
+  --secondary: #764ba2;
+  --secondary-hover: #6a3f92;
+  --secondary-light: #faf5ff;
+  --accent: #f093fb;
+  --accent-hover: #e87ef0;
+  --accent-light: #fff5fd;
+  --status-success: #10b981;
+  --status-success-light: #d1fae5;
+  --status-warning: #f59e0b;
+  --status-warning-light: #fef3c7;
+  --status-error: #dc2626;
+  --status-error-light: #fee2e2;
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-tertiary: #e2e8f0;
+  --surface-primary: #ffffff;
+  --surface-secondary: #f8fafc;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --text-muted: #cbd5e1;
+  --border-light: #e5e7eb;
+  --border-medium: #d1d5db;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  line-height: 1.6;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', 'Inter', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
+  width: 100%;
+}
+
+/*========== NAVBAR ==========*/
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, var(--surface-primary) 0%, var(--bg-secondary) 100%);
+  border-bottom: 2px solid var(--border-light);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  gap: 2rem;
+}
+
+.nav-brand {
+  font-size: 1.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-decoration: none;
+  letter-spacing: -0.025em;
+  transition: transform 0.2s ease;
+  font-family: 'Poppins', sans-serif;
+  white-space: nowrap;
+}
+
+.nav-brand:hover {
+  transform: scale(1.05);
+}
+
+.nav-menu {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.nav-link {
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  position: relative;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--primary);
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.nav-btn {
+  padding: 0.6rem 1.25rem;
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  font-family: 'Inter', sans-serif;
+}
+
+.nav-btn.outline {
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  background-color: transparent;
+}
+
+.nav-btn.outline:hover {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.nav-btn.solid {
+  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border: 2px solid transparent;
+}
+
+.nav-btn.solid:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.mobile-menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--primary);
+}
+
+/*========== HOME PAGE ==========*/
+.home-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.hero-section {
+  width: 100%;
+  padding: 5rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #9655d6 50%, #f093fb 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: fadeInDown 0.6s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  right: -10%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(240, 147, 251, 0.3) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.hero-section::after {
+  content: '';
+  position: absolute;
+  bottom: -20%;
+  left: -5%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(120, 119, 198, 0.2) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  width: 100%;
+}
+
+.home-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  position: relative;
+  z-index: 1;
+  font-family: 'Poppins', sans-serif;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.home-subtitle {
+  font-size: 1.3rem;
+  color: rgba(255, 255, 255, 0.95);
+  max-width: 700px;
+  line-height: 1.8;
+  margin: 0 auto 2.5rem;
+  position: relative;
+  z-index: 1;
+  font-weight: 400;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: slideInUp 0.6s ease-out 0.2s both;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 2.5rem;
+}
+
+.hero-btn {
+  font-size: 1.1rem;
+  padding: 1.2rem 3rem;
+  font-weight: 800;
+  border-radius: 0.8rem;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Poppins', sans-serif;
+}
+
+.hero-btn.solid {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.hero-btn.solid:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+}
+
+.hero-btn.outline {
+  border: 3px solid white;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  backdrop-filter: blur(10px);
+}
+
+.hero-btn.outline:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-6px);
+  box-shadow: 0 15px 40px rgba(255, 255, 255, 0.4);
+  border-color: white;
+}
+
+/*========== FEATURES ==========*/
+.features-section {
+  width: 100%;
+  padding: 5rem 2rem;
+  background-color: var(--surface-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.section-title {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 3rem;
+  text-align: center;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Poppins', sans-serif;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.feature-card {
+  background: var(--surface-primary);
+  border: 2px solid var(--border-light);
+  border-radius: 1.2rem;
+  padding: 2.5rem;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 20px 40px rgba(102, 126, 234, 0.15);
+  transform: translateY(-10px);
+}
+
+.feature-card:hover::before {
+  transform: scaleX(1);
+}
+
+.feature-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1.5rem;
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.feature-card:hover .feature-icon {
+  transform: scale(1.2) rotate(8deg);
+}
+
+.feature-card h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.feature-card p {
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/*========== HOW IT WORKS ==========*/
+.how-it-works {
+  width: 100%;
+  padding: 5rem 2rem;
+  background-color: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.step-card {
+  background: var(--surface-primary);
+  border-radius: 1.2rem;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.step-number {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.step-card h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.step-card p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.step-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.2);
+}
+
+/*========== PROVIDERS SECTION ==========*/
+.providers-section {
+  width: 100%;
+  padding: 5rem 2rem;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--surface-primary) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.providers-content {
+  max-width: 1200px;
+  width: 100%;
+}
+
+.providers-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 2.5rem 2rem;
+  border-radius: 1.2rem;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+}
+
+.stat-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.18);
+  transform: translateY(-8px);
+}
+
+.stat-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.stat-card h3 {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  font-weight: 800;
+  font-family: 'Poppins', sans-serif;
+}
+
+.stat-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/*========== PREMIUM FEATURES SECTION ==========*/
+.premium-features-section {
+  width: 100%;
+  padding: 5rem 2rem;
+  background-color: var(--surface-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.features-showcase {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.feature-showcase-card {
+  background: white;
+  padding: 2.5rem 2rem;
+  border-radius: 1.2rem;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid var(--border-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-showcase-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s ease;
+}
+
+.feature-showcase-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.18);
+  transform: translateY(-8px);
+}
+
+.feature-showcase-card:hover::before {
+  transform: scaleX(1);
+}
+
+.showcase-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.feature-showcase-card:hover .showcase-icon {
+  transform: scale(1.2) rotate(10deg);
+}
+
+.feature-showcase-card h3 {
+  font-size: 1.3rem;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  font-family: 'Poppins', sans-serif;
+}
+
+.feature-showcase-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.contact-item:hover a {
+  color: white;
+}
+
+.contact-item a:hover {
+  text-decoration: underline;
+}
+
+/*========== CTA SECTION ==========*/
+.cta-section {
+  width: 100%;
+  padding: 5rem 2rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-section::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(240, 147, 251, 0.2) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.cta-section h2 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+  font-family: 'Poppins', sans-serif;
+}
+
+.cta-section p {
+  font-size: 1.2rem;
+  margin-bottom: 2.5rem;
+  opacity: 0.98;
+  max-width: 600px;
+  position: relative;
+  z-index: 1;
+  font-weight: 500;
+}
+
+.cta-button {
+  padding: 1.2rem 2.5rem;
+  font-size: 1.05rem;
+  background-color: white;
+  color: var(--primary);
+  border: none;
+  border-radius: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+  font-family: 'Poppins', sans-serif;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.cta-button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+/*========== AUTH FORMS ==========*/
+.auth-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  min-height: calc(100vh - 4rem);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--primary-light) 100%);
+}
+
+.auth-card {
+  background-color: var(--surface-primary);
+  border: 2px solid var(--border-light);
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  padding: 3rem;
+  width: 100%;
+  max-width: 450px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+}
+
+.auth-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Poppins', sans-serif;
+}
+
+.auth-subtitle {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.65rem;
+  letter-spacing: 0.3px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 2px solid var(--border-light);
+  border-radius: 0.7rem;
+  font-size: 0.95rem;
+  background-color: var(--surface-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+}
+
+.form-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.form-input.error {
+  border-color: var(--status-error);
+  background-color: var(--status-error-light);
+}
+
+.form-input.error:focus {
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+}
+
+.error-message {
+  display: block;
+  color: var(--status-error);
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
+  font-weight: 600;
+}
+
+.alert {
+  padding: 1.2rem;
+  border-radius: 0.8rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  border-left: 4px solid;
+}
+
+.alert.error {
+  background-color: var(--status-error-light);
+  color: var(--status-error);
+  border-left-color: var(--status-error);
+}
+
+.alert.success {
+  background-color: var(--status-success-light);
+  color: var(--status-success);
+  border-left-color: var(--status-success);
+}
+
+.auth-button {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  border: none;
+  border-radius: 0.7rem;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 1.5rem;
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.auth-button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+}
+
+.auth-button:active {
+  transform: translateY(-1px);
+}
+
+.auth-link {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.auth-link a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.auth-link a:hover {
+  color: var(--secondary);
+  text-decoration: underline;
+}
+
+/*========== DASHBOARD ==========*/
+.dashboard-container {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.dashboard-header {
+  margin-bottom: 3rem;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.dashboard-header h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Poppins', sans-serif;
+}
+
+.dashboard-header p {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.dashboard-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.dashboard-card {
+  background: var(--surface-primary);
+  border: 2px solid var(--border-light);
+  border-radius: 1.2rem;
+  padding: 2rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInUp 0.6s ease-out;
+}
+
+.dashboard-card h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty-state p {
+  margin: 0.75rem 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.dashboard-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.15);
+  transform: translateY(-8px);
+}
+
+/*========== REQ-7 & REQ-8: QUEUE STATUS STYLES ==========*/
+/* Queue Status Display - Shows patient's position and wait time */
+
+.queue-status-details {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(240, 147, 251, 0.08) 100%);
+  border: 2px solid var(--primary);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  animation: slideInUp 0.6s ease-out;
+}
+
+.queue-info-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.queue-info-item {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 0.75rem;
+  border-left: 4px solid var(--primary);
+  transition: all 0.3s ease;
+}
+
+.queue-info-item:hover {
+  background: rgba(255, 255, 255, 0.7);
+  transform: translateX(5px);
+}
+
+.queue-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.queue-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+  font-family: 'Poppins', sans-serif;
+}
+
+.queue-status-message {
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.15);
+  border-radius: 0.75rem;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 500;
+  border-left: 4px solid var(--primary);
+}
+
+.queue-status-message p {
+  margin: 0;
+}
+
+/*========== ANIMATIONS ==========*/
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/*========== RESPONSIVE ==========*/
+@media (max-width: 768px) {
+  .navbar {
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .nav-brand {
+    font-size: 1.2rem;
+  }
+
+  .nav-menu {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.75rem;
+  }
+
+  .nav-menu.active {
+    display: flex;
+  }
+
+  .nav-link {
+    width: 100%;
+    text-align: center;
+  }
+
+  .mobile-menu-toggle {
+    display: block;
+  }
+
+  .nav-links {
+    width: 100%;
+    order: 3;
+    gap: 0.5rem;
+  }
+
+  .nav-btn {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .home-title {
+    font-size: 2.2rem;
+  }
+
+  .home-subtitle {
+    font-size: 1rem;
+  }
+
+  .hero-section {
+    padding: 3rem 1.5rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+  }
+
+  .hero-btn {
+    width: 100%;
+  }
+
+  .section-title {
+    font-size: 2rem;
+  }
+
+  .features-grid,
+  .steps-grid,
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .auth-card {
+    padding: 2rem;
+  }
+
+  .auth-title {
+    font-size: 1.8rem;
+  }
+
+  .dashboard-content {
+    grid-template-columns: 1fr;
+  }
+
+  /* REQ-7 & REQ-8: Queue Status Responsive Styles */
+  .queue-info-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .cta-section h2 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0.6rem;
+  }
+
+  .nav-brand {
+    font-size: 1rem;
+  }
+
+  .nav-btn {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.7rem;
+  }
+
+  .home-title {
+    font-size: 1.8rem;
+  }
+
+  .home-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .hero-section {
+    padding: 2rem 1rem;
+  }
+
+  .features-section,
+  .how-it-works,
+  .about-section,
+  .contact-section,
+  .cta-section {
+    padding: 2.5rem 1rem;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .feature-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .feature-icon {
+    font-size: 2.5rem;
+  }
+
+  .auth-card {
+    padding: 1.5rem;
+  }
+
+  .dashboard-container {
+    padding: 1rem;
+  }
+
+  .dashboard-card {
+    padding: 1.5rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-links {
+    flex-direction: column;
+  }
+}
+
+/*========== DASHBOARD STATISTICS ==========*/
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+  animation: slideInUp 0.6s ease-out;
+}
+
+.stats-tile {
+  background: linear-gradient(135deg, var(--surface-primary) 0%, var(--bg-secondary) 100%);
+  border: 2px solid var(--border-light);
+  border-radius: 1.2rem;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.stats-tile:hover {
+  border-color: var(--primary);
+  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.15);
+  transform: translateY(-8px);
+}
+
+.stats-tile:hover::before {
+  transform: scaleX(1);
+}
+
+.stats-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.stats-tile:hover .stats-icon {
+  transform: scale(1.15) rotate(8deg);
+}
+
+.stats-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.stats-label {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+/*========== APPOINTMENTS SECTION ==========*/
+.appointments-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: slideInUp 0.6s ease-out;
+}
+
+.appointments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.appointment-item {
+  background: var(--surface-primary);
+  border: 2px solid var(--border-light);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.appointment-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.12);
+  transform: translateX(4px);
+}
+
+.appointment-info {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.appointment-doctor {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+}
+
+.appointment-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.appointment-details-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.appointment-date,
+.appointment-time,
+.appointment-status {
+  margin: 0;
+}
+
+.appointment-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cancel-btn {
+  padding: 0.65rem 1.25rem;
+  background-color: var(--status-error);
+  color: white;
+  border: none;
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.cancel-btn:hover {
+  background-color: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.3);
+}
+
+.cancel-btn:active {
+  transform: translateY(0);
+}
+
+/**
+ * REQ-6: Manage Appointment Button
+ * Opens reschedule/cancel modal with deadline validation
+ * Replaces direct cancel functionality for better UX
+ */
+.manage-btn {
+  padding: 0.65rem 1.25rem;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.manage-btn:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.manage-btn:active {
+  transform: translateY(0);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.status-badge.confirmed {
+  background-color: var(--status-success-light);
+  color: var(--status-success);
+}
+
+.status-badge.pending {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.status-badge.completed {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.status-badge.cancelled {
+  background-color: #fee2e2;
+  color: var(--status-error);
+}
+
+.no-appointments {
+  background: var(--surface-primary);
+  border: 2px dashed var(--border-light);
+  border-radius: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  animation: slideInUp 0.6s ease-out;
+}
+
+.no-appointments h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.no-appointments p {
+  margin: 0;
+  font-weight: 500;
+}
+
+/*========== RESPONSIVE DASHBOARD ==========*/
+@media (max-width: 768px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .stats-number {
+    font-size: 2rem;
+  }
+
+  .stats-icon {
+    font-size: 2.5rem;
+  }
+
+  .appointment-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .appointment-actions {
+    width: 100%;
+  }
+
+  /* REQ-6: Manage button responsive styling for tablets */
+  .manage-btn,
+  .cancel-btn {
+    flex: 1;
+    min-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .stats-tile {
+    padding: 1.5rem 1rem;
+  }
+
+  .stats-number {
+    font-size: 1.8rem;
+  }
+
+  .stats-icon {
+    font-size: 2rem;
+  }
+
+  .stats-label {
+    font-size: 0.85rem;
+  }
+
+  .appointment-item {
+    padding: 1.25rem;
+  }
+
+  .appointment-doctor {
+    font-size: 1.1rem;
+  }
+
+  .appointment-details {
+    gap: 0.3rem;
+    font-size: 0.85rem;
+  }
+
+  .appointment-actions {
+    gap: 0.75rem;
+  }
+
+  /* REQ-6: Manage button responsive styling for mobile */
+  .manage-btn,
+  .cancel-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    min-width: 130px;
+  }
+
+  .no-appointments {
+    padding: 2rem 1.5rem;
+  }
+
+  .no-appointments h3 {
+    font-size: 1.1rem;
+  }
+}
+
+/*========== BOOKING CONFIRMATION PAGE ==========*/
+/* 
+ * SECTION: Booking Confirmation Screen Styling
+ * FILE: BookingConfirmation.jsx
+ * PURPOSE: Style the appointment confirmation page with summary, forms, and policies
+ */
+
+.confirmation-container {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.confirmation-header {
+  margin-bottom: 3rem;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.confirmation-header h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Poppins', sans-serif;
+}
+
+.confirmation-header p {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.confirmation-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  animation: slideInUp 0.6s ease-out;
+}
+
+/*========== SUMMARY SECTION ==========*/
+.summary-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, var(--surface-primary) 0%, var(--bg-secondary) 100%);
+  border: 2px solid var(--border-light);
+  border-radius: 1.2rem;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.summary-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.12);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--border-light);
+  transition: all 0.2s ease;
+}
+
+.summary-row.border-top {
+  margin-top: 0.5rem;
+  border-top: 2px solid var(--primary-light);
+  padding-top: 1.5rem;
+  padding-bottom: 1.25rem;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.summary-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.summary-value {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  text-align: right;
+  font-family: 'Poppins', sans-serif;
+}
+
+/*========== PATIENT INFORMATION FORM ==========*/
+.patient-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.patient-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.required {
+  color: var(--status-error);
+  font-weight: 800;
+}
+
+.form-input,
+.form-textarea {
+  padding: 1rem;
+  border: 2px solid var(--border-light);
+  border-radius: 0.7rem;
+  font-size: 0.95rem;
+  background-color: var(--surface-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  font-family: 'Inter', sans-serif;
+  min-height: 100px;
+}
+
+.form-hint {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+  font-weight: 500;
+}
+
+/*========== POLICIES SECTION ==========*/
+.policies-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.policy-card {
+  background: var(--surface-primary);
+  border: 2px solid var(--border-light);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.policy-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.1);
+}
+
+.policy-subtitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 1rem 0;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.policy-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.policy-list li {
+  padding-left: 1.75rem;
+  position: relative;
+  color: var(--text-secondary);
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.policy-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.agreement-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: var(--primary-light);
+  padding: 1.5rem;
+  border-radius: 0.8rem;
+  border: 2px solid var(--primary);
+  margin-top: 1rem;
+}
+
+.agreement-checkbox input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.agreement-checkbox label {
+  cursor: pointer;
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/*========== ACTION BUTTONS SECTION ==========*/
+.confirmation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: slideInUp 0.6s ease-out;
+}
+
+.success-message {
+  background: var(--status-success-light);
+  color: var(--status-success);
+  padding: 1.5rem;
+  border-radius: 0.8rem;
+  border-left: 4px solid var(--status-success);
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-align: center;
+  animation: slideInDown 0.5s ease-out;
+  font-family: 'Poppins', sans-serif;
+}
+
+.button-group {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 1.1rem 2.5rem;
+  border: none;
+  border-radius: 0.8rem;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  border: 2px solid var(--primary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--primary-light);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.25);
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  color: var(--text-secondary);
+}
+
+.loading-state h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/*========== RESPONSIVE BOOKING CONFIRMATION ==========*/
+@media (max-width: 768px) {
+  .confirmation-container {
+    padding: 1.5rem;
+  }
+
+  .confirmation-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .confirmation-header p {
+    font-size: 0.95rem;
+  }
+
+  .summary-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .summary-value {
+    text-align: left;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .policy-card {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .confirmation-container {
+    padding: 1rem;
+  }
+
+  .confirmation-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .confirmation-header p {
+    font-size: 0.9rem;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+  }
+
+  .summary-card {
+    padding: 1.25rem;
+  }
+
+  .summary-row {
+    padding: 1rem 0;
+  }
+
+  .summary-label,
+  .summary-value {
+    font-size: 0.9rem;
+  }
+
+  .form-input,
+  .form-textarea {
+    font-size: 0.9rem;
+    padding: 0.85rem;
+  }
+
+  .policy-card {
+    padding: 1rem;
+  }
+
+  .policy-subtitle {
+    font-size: 1rem;
+  }
+
+  .agreement-checkbox {
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .agreement-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 1rem 1.5rem;
+    font-size: 0.95rem;
+    min-width: auto;
+  }
+
+  .success-message {
+    font-size: 0.95rem;
+  }
+}
+
+/* ==========================================================================
+   LOADING STATES — Skeleton shimmer, page spinner, button spinner
+   Used by: Dashboard.jsx, DoctorSearch.jsx, BookingConfirmation.jsx
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Shimmer keyframe
+   Creates the left-to-right light sweep effect on skeleton placeholders.
+   -------------------------------------------------------------------------- */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+/* --------------------------------------------------------------------------
+   Skeleton shimmer base class
+   Apply to any element that should pulse with the loading shimmer.
+   -------------------------------------------------------------------------- */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary)     25%,
+    var(--bg-secondary)    50%,
+    var(--bg-tertiary)     75%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 0.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   Skeleton card — wraps skeleton lines inside a dashboard card shell
+   -------------------------------------------------------------------------- */
+.skeleton-card {
+  /* Prevent hover transform on skeleton cards */
+  pointer-events: none;
+}
+
+/* Fake card heading bar */
+.skeleton-line.skeleton-title {
+  height: 1.4rem;
+  width: 55%;
+  margin-bottom: 1.25rem;
+}
+
+/* Fake body text lines */
+.skeleton-line.skeleton-text {
+  height: 0.9rem;
+  width: 90%;
+  margin-bottom: 0.75rem;
+}
+
+/* Shorter variant — creates visual rhythm */
+.skeleton-line.skeleton-text.short {
+  width: 60%;
+}
+
+/* Skeleton avatar circle (used in DoctorSearch skeleton card) */
+.skeleton-avatar {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  margin-bottom: 1.25rem;
+}
+
+/* Skeleton info block that sits beside the avatar */
+.skeleton-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   Page-level loading state
+   Full-width centred block used at the top level of a page (e.g. when
+   navigating to /booking-confirmation without appointment data).
+   -------------------------------------------------------------------------- */
+.loading-state {
+  display:         flex;
+  flex-direction:  column;
+  justify-content: center;
+  align-items:     center;
+  min-height:      360px;
+  gap:             1.25rem;
+}
+
+/* Friendly helper text below the spinner */
+.loading-text {
+  color:       var(--text-secondary);
+  font-size:   1.05rem;
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   CSS-only circular spinner (page-level)
+   Used in BookingConfirmation while pendingAppointment is null.
+   -------------------------------------------------------------------------- */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+  width:        52px;
+  height:       52px;
+  border:       5px solid var(--border-light);
+  border-top:   5px solid var(--primary);
+  border-radius: 50%;
+  animation:    spin 0.9s linear infinite;
+}
+
+/* --------------------------------------------------------------------------
+   Inline button spinner
+   Displayed inside the "Confirm Booking" button while isLoading is true.
+   -------------------------------------------------------------------------- */
+.btn-spinner {
+  display:       inline-block;
+  width:         16px;
+  height:        16px;
+  border:        3px solid rgba(255, 255, 255, 0.4);
+  border-top:    3px solid white;
+  border-radius: 50%;
+  animation:     spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right:  0.4rem;
+}
+
+/* --------------------------------------------------------------------------
+   Stats tile loading dot
+   Small animated "···" shown inside stat number cells while isLoading=true.
+   -------------------------------------------------------------------------- */
+@keyframes dotPulse {
+  0%, 80%, 100% { opacity: 0.2; }
+  40%           { opacity: 1;   }
+}
+
+.stats-loading-dot {
+  font-size:   1.6rem;
+  font-weight: 700;
+  color:       var(--primary);
+  letter-spacing: 4px;
+  animation:   dotPulse 1.4s ease-in-out infinite;
+}
+
+
+/* ==========================================================================
+   EMPTY STATES
+   Used by: Dashboard.jsx (all four modules), DoctorSearch.jsx
+   ========================================================================== */
+
+/*
+ * Base empty state layout
+ * Centred column with icon, title, description, and optional hint + CTA.
+ * Replaces the previous minimal .empty-state with a properly styled block.
+ */
+.empty-state {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  justify-content: center;
+  text-align:     center;
+  padding:        2.5rem 1.5rem;
+  gap:            0.5rem;
+}
+
+/* Large emoji/icon on top of every empty state */
+.empty-state-icon {
+  font-size:     3.5rem;
+  margin-bottom: 0.75rem;
+  /* Subtle float animation keeps the icon alive without being distracting */
+  animation:     emptyFloat 3s ease-in-out infinite;
+  line-height:   1;
+}
+
+@keyframes emptyFloat {
+  0%, 100% { transform: translateY(0);    }
+  50%       { transform: translateY(-6px); }
+}
+
+/* Primary heading inside the empty state */
+.empty-state-title {
+  font-size:   1.25rem;
+  font-weight: 700;
+  color:       var(--text-primary);
+  margin:      0.25rem 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Main descriptive line */
+.empty-state-desc {
+  font-size:   0.97rem;
+  font-weight: 500;
+  color:       var(--text-secondary);
+  max-width:   320px;
+  line-height: 1.6;
+  margin:      0;
+}
+
+/* Secondary hint — smaller, de-emphasised */
+.empty-state-hint {
+  font-size:   0.87rem;
+  color:       var(--text-tertiary);
+  max-width:   300px;
+  line-height: 1.5;
+  margin:      0.25rem 0 0.75rem;
+}
+
+/* Primary CTA button inside an empty state */
+.empty-state-cta {
+  margin-top:  1rem;
+  font-size:   0.92rem;
+  padding:     0.7rem 1.6rem;
+  display:     inline-block;
+  text-decoration: none;
+}
+
+/* --------------------------------------------------------------------------
+   DoctorSearch-specific empty state adjustments
+   Gives the search empty state a bit more vertical breathing room inside
+   the wider section layout.
+   -------------------------------------------------------------------------- */
+.doctor-empty-state {
+  min-height: 340px;
+  padding:    3rem 2rem;
+}
+
+/* "Clear Filters" reset button */
+.empty-state-reset-btn {
+  margin-top:       0.75rem;
+  padding:          0.65rem 1.5rem;
+  background:       transparent;
+  border:           2px solid var(--border-medium);
+  border-radius:    0.6rem;
+  font-size:        0.9rem;
+  font-weight:      700;
+  color:            var(--text-secondary);
+  cursor:           pointer;
+  font-family:      'Inter', sans-serif;
+  transition:       all 0.25s ease;
+}
+
+.empty-state-reset-btn:hover {
+  border-color: var(--primary);
+  color:        var(--primary);
+  background:   var(--primary-light);
+  transform:    translateY(-2px);
+}
