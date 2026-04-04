@@ -130,3 +130,46 @@ router.patch('/:id/status', async (req, res) => {
     client.release();
   }
 });
+
+// Implements: REQ-6 --- see SRS Section 3.6
+// PATCH /appointments/:id/reschedule --- enforce 2-hour window
+router.patch('/:id/reschedule', async (req, res) => {
+  const { id } = req.params;
+  const { new_schedule_id } = req.body;
+  const client = await db.getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    const { rows: appt } = await client.query(
+      SELECT * FROM Appointments WHERE id = , [id]
+    );
+
+    if (appt.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    const appointmentTime = new Date(appt[0].scheduled_at);
+    const now = new Date();
+    const diffHours = (appointmentTime - now) / (1000 * 60 * 60);
+
+    if (diffHours < 2) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Cannot reschedule within 2 hours of appointment' });
+    }
+
+    await client.query(
+      UPDATE Appointments SET schedule_id = , status = 'booked' WHERE id = ,
+      [new_schedule_id, id]
+    );
+
+    await client.query('COMMIT');
+    res.json({ message: 'Appointment rescheduled successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'Reschedule failed' });
+  } finally {
+    client.release();
+  }
+});
