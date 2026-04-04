@@ -3,212 +3,202 @@
  * DASHBOARD PAGE COMPONENT
  * Main user interface for authenticated patients
  * ========================================
- * Route: /dashboard (Protected)
- * Access: Authenticated users only
- * Redirects: Non-authenticated users to /login
- * 
- * Features:
- * - Upcoming appointments display
- * - Queue status tracking
- * - Medical records access
- * - Notifications center
- * - Statistics tiles
- * - Link to book new appointments
+ * Route: /dashboard (Protected — authenticated users only)
+ * Redirects non-authenticated users to /login
+ *
+ * Modules rendered:
+ *  1. Statistics Tiles  — quick KPIs (appointments, queue, amount due)
+ *  2. Upcoming Appointments — list of booked visits with manage action
+ *  3. Queue Status      — REQ-7 & REQ-8 live position + wait time
+ *  4. Medical Records   — placeholder for future visit history
+ *  5. Notifications     — placeholder for alert feed
+ *
+ * Loading strategy:
+ *  - isLoading flag drives a 800 ms shimmer skeleton so the layout
+ *    never flashes empty before data arrives from localStorage.
+ *
+ * Polling strategy (REQ-14):
+ *  - Queue data is refreshed every 5 seconds via a debounced helper
+ *    to avoid excessive reads during rapid consecutive triggers.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import RescheduleCancel from '../components/RescheduleCancel';
-// REQ-14: Import debounce utility for queue refresh polling
+// REQ-14: Debounce utility prevents excessive queue-refresh calls during polling
 import { debounce } from '../utils/debounce';
 
 const Dashboard = () => {
-  // Get current authenticated user from context
+  // ── Auth context ──────────────────────────────────────────────────────────
   const { user } = useAuth();
 
-  // State management for appointments and statistics
+  // ── Appointment state ─────────────────────────────────────────────────────
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
-  const [totalAppointments, setTotalAppointments] = useState(0);
+  const [totalAppointments, setTotalAppointments]       = useState(0);
   const [completedAppointments, setCompletedAppointments] = useState(0);
-  
-  // REQ-7: Queue Position Display - State for storing patient's current queue position
-  const [queuePosition, setQueuePosition] = useState(null);
-  
-  // REQ-8: Estimated Wait Time Display - State for storing estimated wait time in minutes
-  const [estimatedWaitTime, setEstimatedWaitTime] = useState(null);
-  
-  // State to track if patient is currently in queue
-  const [isInQueue, setIsInQueue] = useState(false);
-  
-  // State to track total amount due from completed/past appointments
-  const [amountDue, setAmountDue] = useState(0);
+  const [amountDue, setAmountDue]                       = useState(0);
 
-  // REQ-6: State management for Reschedule/Cancel modal
-  // Tracks if modal is open and which appointment is being managed
+  // ── REQ-7: Queue Position / REQ-8: Estimated Wait Time ───────────────────
+  const [queuePosition, setQueuePosition]       = useState(null);
+  const [estimatedWaitTime, setEstimatedWaitTime] = useState(null);
+  const [isInQueue, setIsInQueue]               = useState(false);
+
+  // ── REQ-6: Reschedule/Cancel modal state ─────────────────────────────────
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
-  // REQ-14: Dashboard polling fix - Create ref for debounced queue refresh function
-  // This prevents excessive API calls by debouncing rapid polling requests
-  // The debounced function will only execute after 2 seconds of inactivity
+  // ── Loading state — shows skeleton UI while localStorage data is read ─────
+  const [isLoading, setIsLoading] = useState(true);
+
+  // ── REQ-14: Ref holds the debounced refresh function across renders ───────
   const debouncedQueueRefreshRef = useRef(null);
 
-  // Effect: Load appointments and queue data from localStorage on component mount
+  // ==========================================================================
+  // EFFECTS
+  // ==========================================================================
+
+  /**
+   * Effect: Initial data load
+   * Uses a short timeout (800 ms) to simulate async data fetching and
+   * ensure the skeleton loading state is visible before data populates.
+   */
   useEffect(() => {
-    loadAppointments();
-    loadQueueData();
+    const timer = setTimeout(() => {
+      loadAppointments();
+      loadQueueData();
+      setIsLoading(false); // ← dismiss skeleton once data is ready
+    }, 800);
+    return () => clearTimeout(timer); // cleanup on unmount
   }, []);
-  
-  // Effect: Calculate amount due from past appointments
+
+  /**
+   * Effect: Recalculate amount due whenever appointments change
+   * Also runs on a 1-minute interval to catch appointments that expire
+   * while the user is viewing the dashboard.
+   */
   useEffect(() => {
     calculateAmountDue();
-    // Update amount due every minute to check for passed appointments
-    const timer = setInterval(calculateAmountDue, 60000);
+    const timer = setInterval(calculateAmountDue, 60_000);
     return () => clearInterval(timer);
   }, [upcomingAppointments]);
 
   /**
-   * REQ-14: Dashboard polling fix - Real-time queue refresh with debouncing
-   * 
-   * Purpose: Implements debounced polling for queue status updates to reduce
-   * API calls and improve performance. Instead of querying the server on every
-   * potential update, this debounces rapid consecutive updates into a single call.
-   * 
-   * Implementation Details:
-   * - Debounce delay: 2000ms (2 seconds) - waits for 2 seconds of inactivity
-   * - Polling interval: 5000ms (5 seconds) - attempts refresh every 5 seconds
-   * - Triggers queue data refresh every 5 seconds, but only executes if 2+ seconds elapsed
-   * 
-   * Benefits:
-   * - Reduces unnecessary re-renders and API calls
-   * - Smooth user experience with periodic updates
-   * - Prevents thundering herd problem from multiple rapid requests
-   * - Configurable delays for different use cases
+   * REQ-14: Effect — Debounced queue polling
+   * Refreshes queue data every 5 seconds. The debounce (2 s) prevents
+   * multiple rapid reads if the interval fires during a slow tick.
+   *
+   * Cleanup: clears the interval and nullifies the debounced ref on unmount
+   * to prevent memory leaks.
    */
   useEffect(() => {
-    // REQ-14: Initialize debounced queue refresh function
-    // Debounce delay of 2000ms prevents excessive calls during rapid polling
+    // Build a debounced version of loadQueueData (2 s debounce delay)
     debouncedQueueRefreshRef.current = debounce(() => {
       try {
         loadQueueData();
-        console.log('[REQ-14] Debounced queue data refreshed at:', new Date().toLocaleTimeString());
-      } catch (error) {
-        console.error('[REQ-14] Error in debounced queue refresh:', error);
+      } catch (err) {
+        console.error('[REQ-14] Error in debounced queue refresh:', err);
       }
     }, 2000);
 
-    // REQ-14: Set up polling interval for queue status
-    // Every 5 seconds, trigger the debounced refresh function
-    // If called frequently, debounce ensures only one request per 2+ second period
+    // Poll every 5 seconds; debounce absorbs burst triggers
     const pollInterval = setInterval(() => {
-      if (debouncedQueueRefreshRef.current) {
-        debouncedQueueRefreshRef.current();
-      }
+      debouncedQueueRefreshRef.current?.();
     }, 5000);
 
-    // REQ-14: Cleanup function - remove polling interval on component unmount
-    // This prevents memory leaks and unnecessary API calls after component unmounts
     return () => {
       clearInterval(pollInterval);
-      // Clear the debounced function ref to free memory
       debouncedQueueRefreshRef.current = null;
     };
   }, []);
 
+  // ==========================================================================
+  // DATA LOADERS
+  // ==========================================================================
 
-  // Function to load appointments from localStorage
+  /**
+   * loadAppointments — reads persisted appointments from localStorage.
+   * In production this would be replaced by an API call.
+   */
   const loadAppointments = () => {
     try {
-      const savedAppointments = localStorage.getItem('userAppointments');
-      if (savedAppointments) {
-        const appointments = JSON.parse(savedAppointments);
+      const raw = localStorage.getItem('userAppointments');
+      if (raw) {
+        const appointments = JSON.parse(raw);
         setUpcomingAppointments(appointments);
         setTotalAppointments(appointments.length);
       }
-    } catch (error) {
-      console.error('Error loading appointments:', error);
+    } catch (err) {
+      console.error('Error loading appointments:', err);
     }
   };
 
-  // REQ-7 & REQ-8: Queue Data Loading Function
-  // REQ-14: This function is called by debounced polling mechanism
-  // Retrieves patient's queue position and estimated wait time from localStorage
-  // This function integrates with the queue management system to display:
-  // - REQ-7: Queue Position - Current position in clinic queue
-  // - REQ-8: Estimated Wait Time - Time until patient's appointment
-  // - REQ-14: Called periodically via debounced polling every 5 seconds (with 2s debounce)
+  /**
+   * loadQueueData — reads live queue info from localStorage.
+   * REQ-7: sets queuePosition  |  REQ-8: sets estimatedWaitTime
+   * REQ-14: called by the debounced polling interval above.
+   */
   const loadQueueData = () => {
     try {
-      const queueData = localStorage.getItem('userQueueData');
-      if (queueData) {
-        const queue = JSON.parse(queueData);
-        // REQ-7: Set queue position from stored queue data
-        setQueuePosition(queue.position || null);
-        // REQ-8: Set estimated wait time from queue data (in minutes)
-        setEstimatedWaitTime(queue.estimatedWaitTime || null);
-        // Set flag to indicate patient is in queue
-        setIsInQueue(queue.position !== null && queue.position !== undefined);
+      const raw = localStorage.getItem('userQueueData');
+      if (raw) {
+        const queue = JSON.parse(raw);
+        // REQ-7: current position in clinic queue
+        setQueuePosition(queue.position ?? null);
+        // REQ-8: estimated wait time in minutes
+        setEstimatedWaitTime(queue.estimatedWaitTime ?? null);
+        setIsInQueue(queue.position != null);
       } else {
-        // No queue data available - patient not in any queue
+        // No active queue — reset to idle state
         setQueuePosition(null);
         setEstimatedWaitTime(null);
         setIsInQueue(false);
       }
-    } catch (error) {
-      console.error('Error loading queue data:', error);
+    } catch (err) {
+      console.error('Error loading queue data:', err);
       setIsInQueue(false);
     }
   };
 
-  // Function to format date for display
-  const formatDate = (dateString) => {
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
+  // ==========================================================================
+  // UTILITY FUNCTIONS
+  // ==========================================================================
 
-  // Function to calculate amount due from past appointments
-  // Amount is added when appointment date/time has passed
+  /**
+   * formatDate — converts a YYYY-MM-DD string into a human-readable date.
+   * Appends T00:00:00 to avoid timezone-offset issues.
+   */
+  const formatDate = (dateString) =>
+    new Date(dateString + 'T00:00:00').toLocaleDateString('en-US', {
+      weekday: 'short',
+      year:    'numeric',
+      month:   'short',
+      day:     'numeric',
+    });
+
+  /**
+   * calculateAmountDue — sums consultation fees for appointments whose
+   * date/time has already passed (i.e., the patient has been seen).
+   */
   const calculateAmountDue = () => {
-    const now = new Date();
-    let total = 0;
-    
+    const now   = new Date();
+    let   total = 0;
     upcomingAppointments.forEach((apt) => {
-      const appointmentDateTime = new Date(apt.date + 'T' + apt.time);
-      // If appointment time has passed, add fee to amount due
-      if (appointmentDateTime < now && apt.fee) {
+      const apptTime = new Date(apt.date + 'T' + apt.time);
+      if (apptTime < now && apt.fee) {
         total += parseFloat(apt.fee) || 0;
       }
     });
-    
     setAmountDue(total);
   };
-  
-  // Function to cancel appointment
-  // Also removes queue data when appointment is cancelled
-  const cancelAppointment = (appointmentId) => {
-    const updated = upcomingAppointments.filter(apt => apt.id !== appointmentId);
-    setUpcomingAppointments(updated);
-    localStorage.setItem('userAppointments', JSON.stringify(updated));
-    setTotalAppointments(updated.length);
-    
-    // Clear queue data when appointment is cancelled
-    // REQ-7 & REQ-8: Remove queue position and estimated wait time
-    localStorage.removeItem('userQueueData');
-    setQueuePosition(null);
-    setEstimatedWaitTime(null);
-    setIsInQueue(false);
-  };
+
+  // ==========================================================================
+  // REQ-6: MODAL HANDLERS (Reschedule / Cancel)
+  // ==========================================================================
 
   /**
-   * REQ-6: Open Reschedule/Cancel Modal
-   * Opens the modal and selects the appointment to manage
-   * Triggered by "Manage Appointment" or "Reschedule/Cancel" button
+   * handleOpenRescheduleModal — stores the target appointment and opens modal.
+   * Triggered by the "Manage" button on each appointment card.
    */
   const handleOpenRescheduleModal = (appointment) => {
     setSelectedAppointment(appointment);
@@ -216,210 +206,303 @@ const Dashboard = () => {
   };
 
   /**
-   * REQ-6: Handle Reschedule Action
-   * Called when user confirms rescheduling an appointment
-   * Updates the appointment with new date/time and saves to localStorage
+   * handleRescheduleAppointment — replaces the old appointment object with
+   * the rescheduled one and persists the updated list to localStorage.
    */
-  const handleRescheduleAppointment = (rescheduledAppointment) => {
-    // Find and update the appointment in the list
-    const updatedAppointments = upcomingAppointments.map(apt =>
-      apt.id === rescheduledAppointment.id ? rescheduledAppointment : apt
+  const handleRescheduleAppointment = (rescheduled) => {
+    const updated = upcomingAppointments.map((apt) =>
+      apt.id === rescheduled.id ? rescheduled : apt
     );
-    
-    // Update state and persist to localStorage
-    setUpcomingAppointments(updatedAppointments);
-    localStorage.setItem('userAppointments', JSON.stringify(updatedAppointments));
-    
-    // Reset modal state
+    setUpcomingAppointments(updated);
+    localStorage.setItem('userAppointments', JSON.stringify(updated));
+    // Close modal and clear selection
     setRescheduleModalOpen(false);
     setSelectedAppointment(null);
-    
-    // Show success message (could be enhanced with a toast notification)
-    console.log('Appointment rescheduled successfully:', rescheduledAppointment);
   };
 
   /**
-   * REQ-6: Handle Cancel Action
-   * Called when user confirms canceling an appointment
-   * Removes appointment from list and clears queue data
+   * handleCancelAppointmentFromModal — removes the cancelled appointment
+   * from state/localStorage and clears any active queue data for that booking.
    */
   const handleCancelAppointmentFromModal = (cancellationRecord) => {
-    // Remove the cancelled appointment from the list
-    const updatedAppointments = upcomingAppointments.filter(
-      apt => apt.id !== cancellationRecord.appointmentId
+    const updated = upcomingAppointments.filter(
+      (apt) => apt.id !== cancellationRecord.appointmentId
     );
-    
-    // Update state and persist to localStorage
-    setUpcomingAppointments(updatedAppointments);
-    localStorage.setItem('userAppointments', JSON.stringify(updatedAppointments));
-    setTotalAppointments(updatedAppointments.length);
-    
-    // Clear queue data when appointment is cancelled
-    // REQ-7 & REQ-8: Remove queue position and estimated wait time
+    setUpcomingAppointments(updated);
+    localStorage.setItem('userAppointments', JSON.stringify(updated));
+    setTotalAppointments(updated.length);
+
+    // REQ-7 & REQ-8: Remove queue data when appointment is cancelled
     localStorage.removeItem('userQueueData');
     setQueuePosition(null);
     setEstimatedWaitTime(null);
     setIsInQueue(false);
-    
-    // Reset modal state
+
+    // Close modal and clear selection
     setRescheduleModalOpen(false);
     setSelectedAppointment(null);
-    
-    // Show success message (could be enhanced with a toast notification)
-    console.log('Appointment cancelled successfully:', cancellationRecord);
   };
 
+  // ==========================================================================
+  // SKELETON LOADER COMPONENT
+  // ==========================================================================
+
+  /**
+   * SkeletonCard — placeholder card shown while isLoading is true.
+   * Uses CSS shimmer animation defined in index.css (.skeleton-shimmer).
+   */
+  const SkeletonCard = () => (
+    <div className="dashboard-card skeleton-card" aria-hidden="true">
+      {/* Fake card heading */}
+      <div className="skeleton-line skeleton-title skeleton-shimmer"></div>
+      {/* Fake content lines */}
+      <div className="skeleton-line skeleton-text skeleton-shimmer"></div>
+      <div className="skeleton-line skeleton-text short skeleton-shimmer"></div>
+      <div className="skeleton-line skeleton-text skeleton-shimmer"></div>
+    </div>
+  );
+
+  // ==========================================================================
+  // RENDER
+  // ==========================================================================
   return (
     <div className="dashboard-container">
+
       {/* ===== DASHBOARD HEADER ===== */}
-      {/* Personalized greeting and introduction */}
+      {/* Personalised greeting — name sourced from AuthContext */}
       <section className="dashboard-header">
         <div className="header-content">
           <h1>Welcome, {user?.name || 'Patient'}! </h1>
           <p>Manage your appointments and track your queue status in real time.</p>
         </div>
       </section>
-      
+
       {/* ===== STATISTICS TILES ===== */}
-      {/* Quick stats about appointments and health */}
+      {/* Quick-glance KPIs — values show "..." while loading */}
       <section className="dashboard-stats">
+        {/* Tile 1: Upcoming count */}
         <div className="stats-tile">
           <span className="stats-icon">📅</span>
-          <span className="stats-number">{totalAppointments}</span>
+          <span className="stats-number">
+            {isLoading ? (
+              <span className="stats-loading-dot">···</span>
+            ) : totalAppointments}
+          </span>
           <p className="stats-label">Upcoming Appointments</p>
         </div>
+
+        {/* Tile 2: Completed count */}
         <div className="stats-tile">
           <span className="stats-icon">✅</span>
-          <span className="stats-number">{completedAppointments}</span>
+          <span className="stats-number">
+            {isLoading ? (
+              <span className="stats-loading-dot">···</span>
+            ) : completedAppointments}
+          </span>
           <p className="stats-label">Completed</p>
         </div>
-        {/* REQ-7: Queue Position Display - Statistics Tile */}
+
+        {/* Tile 3: REQ-7 — Queue Position */}
         <div className="stats-tile">
           <span className="stats-icon">⏱️</span>
-          <span className="stats-number">{isInQueue ? queuePosition : '—'}</span>
+          <span className="stats-number">
+            {isLoading ? (
+              <span className="stats-loading-dot">···</span>
+            ) : isInQueue ? queuePosition : '—'}
+          </span>
           <p className="stats-label">Queue Position</p>
         </div>
+
+        {/* Tile 4: Amount Due */}
         <div className="stats-tile">
           <span className="stats-icon">💰</span>
-          <span className="stats-number">${amountDue.toFixed(2)}</span>
+          <span className="stats-number">
+            {isLoading ? (
+              <span className="stats-loading-dot">···</span>
+            ) : `$${amountDue.toFixed(2)}`}
+          </span>
           <p className="stats-label">Amount Due</p>
         </div>
       </section>
-      
+
       {/* ===== DASHBOARD CONTENT GRID ===== */}
-      {/* Main dashboard modules and information cards */}
+      {/* Renders skeleton cards while loading, real modules after */}
       <div className="dashboard-content">
-        
-        {/* ===== MODULE 1: UPCOMING APPOINTMENTS ===== */}
-        {/* Displays patient's scheduled appointments - Linked to doctor search */}
-        <div className="dashboard-card">
-          <h2>📅 Upcoming Appointments</h2>
-          {upcomingAppointments.length > 0 ? (
-            <div className="appointments-list">
-              {upcomingAppointments.map((appointment) => (
-                <div key={appointment.id} className="appointment-item">
-                  <div className="appointment-info">
-                    <h3 className="appointment-doctor">{appointment.doctorName}</h3>
-                    <div className="appointment-details">
-                      <div className="appointment-details-item">
-                        <span>📅 {formatDate(appointment.date)}</span>
+
+        {isLoading ? (
+          /* ── LOADING STATE: four shimmer skeleton cards ── */
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : (
+          /* ── DATA LOADED: render all four modules ── */
+          <>
+
+            {/* ── MODULE 1: UPCOMING APPOINTMENTS ──────────────────────── */}
+            {/* Lists all booked appointments with a manage action per row  */}
+            <div className="dashboard-card">
+              <h2>📅 Upcoming Appointments</h2>
+
+              {upcomingAppointments.length > 0 ? (
+                /* Appointment list — shown when at least one booking exists */
+                <div className="appointments-list">
+                  {upcomingAppointments.map((appointment) => (
+                    <div key={appointment.id} className="appointment-item">
+                      {/* Left: doctor name + details */}
+                      <div className="appointment-info">
+                        <h3 className="appointment-doctor">
+                          {appointment.doctorName}
+                        </h3>
+                        <div className="appointment-details">
+                          <div className="appointment-details-item">
+                            <span>📅 {formatDate(appointment.date)}</span>
+                          </div>
+                          <div className="appointment-details-item">
+                            <span>⏰ {appointment.time}</span>
+                          </div>
+                          <div className="appointment-details-item">
+                            {/* Specialty displayed as a coloured status badge */}
+                            <span className="status-badge confirmed">
+                              {appointment.specialty}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="appointment-details-item">
-                        <span>⏰ {appointment.time}</span>
-                      </div>
-                      <div className="appointment-details-item">
-                        <span className="status-badge confirmed">{appointment.specialty}</span>
+
+                      {/* Right: REQ-6 — opens Reschedule/Cancel modal */}
+                      <div className="appointment-actions">
+                        <button
+                          className="manage-btn"
+                          onClick={() => handleOpenRescheduleModal(appointment)}
+                          title="Reschedule or cancel this appointment"
+                        >
+                          Manage Appointment
+                        </button>
                       </div>
                     </div>
+                  ))}
+                </div>
+              ) : (
+                /* ── EMPTY STATE: No appointments booked yet ─────────── */
+                <div className="empty-state">
+                  {/* Large illustrative emoji icon */}
+                  <div className="empty-state-icon">📭</div>
+                  <h3 className="empty-state-title">No Upcoming Appointments</h3>
+                  <p className="empty-state-desc">
+                    You don't have any visits scheduled yet.
+                  </p>
+                  <p className="empty-state-hint">
+                    Browse available doctors and book your first appointment in
+                    seconds.
+                  </p>
+                  {/* CTA: navigate to doctor search */}
+                  <Link
+                    to="/doctors"
+                    className="nav-btn solid empty-state-cta"
+                  >
+                    🔍 Find a Doctor
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* ── MODULE 2: QUEUE STATUS ────────────────────────────────── */}
+            {/* REQ-7 & REQ-8: Live position + estimated wait time           */}
+            <div className="dashboard-card">
+              <h2>📍 Your Queue Status</h2>
+
+              {isInQueue && queuePosition !== null ? (
+                /* Active queue: show position and wait time */
+                <div className="queue-status-details">
+                  <div className="queue-info-container">
+                    {/* REQ-7: Queue position number */}
+                    <div className="queue-info-item">
+                      <span className="queue-label">Your Position</span>
+                      <span className="queue-value"># {queuePosition}</span>
+                    </div>
+
+                    {/* REQ-8: Estimated wait time in minutes */}
+                    <div className="queue-info-item">
+                      <span className="queue-label">Estimated Wait</span>
+                      <span className="queue-value">
+                        {estimatedWaitTime !== null
+                          ? `${estimatedWaitTime} min`
+                          : 'Calculating…'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="appointment-actions">
-                    {/* REQ-6: Open Reschedule/Cancel modal instead of direct cancel */}
-                    <button 
-                      className="manage-btn"
-                      onClick={() => handleOpenRescheduleModal(appointment)}
-                      title="Reschedule or cancel this appointment"
-                    >
-                      Manage Appointment
-                    </button>
+
+                  {/* Friendly status banner below the two KPI boxes */}
+                  <div className="queue-status-message">
+                    <p>
+                      🟢 You are in the queue. We'll notify you when it's your
+                      turn — hang tight!
+                    </p>
                   </div>
                 </div>
-              ))}
+              ) : (
+                /* ── EMPTY STATE: patient not currently waiting ─────── */
+                <div className="empty-state">
+                  <div className="empty-state-icon">🏥</div>
+                  <h3 className="empty-state-title">Not In Any Queue</h3>
+                  <p className="empty-state-desc">
+                    You are not currently waiting at any clinic.
+                  </p>
+                  <p className="empty-state-hint">
+                    Your live position and estimated wait will appear here
+                    automatically once you join a clinic queue.
+                  </p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="no-appointments">
-              <h3>No Upcoming Appointments</h3>
-              <p>You don't have any upcoming appointments scheduled.</p>
-              <Link to="/doctors" className="nav-btn solid" style={{ marginTop: '1.5rem', display: 'inline-block' }}>
-                Book an Appointment
-              </Link>
-            </div>
-          )}
-        </div>
 
-        {/* ===== MODULE 2: QUEUE STATUS ===== */}
-        {/* REQ-7 & REQ-8: Real-time Queue Position and Estimated Wait Time Display */}
-        <div className="dashboard-card">
-          <h2>📍 Your Queue Status</h2>
-          {isInQueue && queuePosition !== null ? (
-            <div className="queue-status-details">
-              {/* REQ-7: Queue Position & REQ-8: Estimated Wait Time Display */}
-              <div className="queue-info-container">
-                <div className="queue-info-item">
-                  <span className="queue-label">Your Position</span>
-                  <span className="queue-value"># {queuePosition}</span>
-                </div>
-                
-                <div className="queue-info-item">
-                  <span className="queue-label">Estimated Wait</span>
-                  <span className="queue-value">
-                    {estimatedWaitTime !== null ? `${estimatedWaitTime} min` : 'Calculating...'}
-                  </span>
-                </div>
-              </div>
-              
-              {/* Status Message */}
-              <div className="queue-status-message">
-                <p>You are currently in the queue. Please wait for your turn.</p>
+            {/* ── MODULE 3: MEDICAL RECORDS ─────────────────────────────── */}
+            {/* Placeholder — will list visit summaries and prescriptions    */}
+            <div className="dashboard-card">
+              <h2>📋 Medical Records</h2>
+              {/* ── EMPTY STATE: No records on file yet (future feature) ── */}
+              <div className="empty-state">
+                <div className="empty-state-icon">🗂️</div>
+                <h3 className="empty-state-title">No Records Yet</h3>
+                <p className="empty-state-desc">
+                  Your medical records will appear here after your first
+                  consultation.
+                </p>
+                <p className="empty-state-hint">
+                  Consultation summaries, prescriptions, and test results will
+                  be stored securely and accessible any time.
+                </p>
               </div>
             </div>
-          ) : (
-            <div className="empty-state">
-              <p>You are not currently in any waiting queue.</p>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                Your queue position will appear here once you join a queue at a clinic.
-              </p>
+
+            {/* ── MODULE 4: NOTIFICATIONS ───────────────────────────────── */}
+            {/* Placeholder — will display alerts, reminders, and updates    */}
+            <div className="dashboard-card">
+              <h2>🔔 Recent Notifications</h2>
+              {/* ── EMPTY STATE: Inbox is clear ────────────────────────── */}
+              <div className="empty-state">
+                <div className="empty-state-icon">🔕</div>
+                <h3 className="empty-state-title">All Caught Up!</h3>
+                <p className="empty-state-desc">
+                  You have no new notifications right now.
+                </p>
+                <p className="empty-state-hint">
+                  Appointment confirmations, queue alerts, and reminders will
+                  appear here as events occur.
+                </p>
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* ===== MODULE 3: MEDICAL RECORDS ===== */}
-        {/* Access to patient's medical history and documents */}
-        <div className="dashboard-card">
-          <h2>📋 Medical Records</h2>
-          <div className="empty-state">
-            <p>Your medical records and past appointments will be displayed here.</p>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              Access your consultation summaries and prescriptions securely in one place.
-            </p>
-          </div>
-        </div>
-
-        {/* ===== MODULE 4: NOTIFICATIONS ===== */}
-        {/* Important alerts and reminders */}
-        <div className="dashboard-card">
-          <h2>🔔 Recent Notifications</h2>
-          <div className="empty-state">
-            <p>You don't have any new notifications.</p>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              You'll receive updates about appointments, queue changes, and important alerts here.
-            </p>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
-      {/* REQ-6: Reschedule and Cancel Modal Component */}
-      {/* Opens when user clicks "Manage Appointment" button on an appointment */}
-      {/* Handles both reschedule and cancel actions with deadline validation */}
+      {/* ── REQ-6: Reschedule / Cancel Modal ────────────────────────────── */}
+      {/* Rendered at the bottom so it overlays the whole dashboard.         */}
+      {/* Opens when user clicks "Manage Appointment" on any booking card.   */}
       <RescheduleCancel
         appointment={selectedAppointment}
         isOpen={rescheduleModalOpen}

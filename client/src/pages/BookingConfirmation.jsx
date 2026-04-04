@@ -219,12 +219,18 @@ const BookingConfirmation = () => {
   // SECTION 5: RENDER LOGIC
   // ===========================
 
-  // Show loading state while data is loading
+  // ── LOADING / REDIRECT STATE ───────────────────────────────────────────
+  // pendingAppointment is null until the useEffect populates it from
+  // navigation state. If it stays null the user navigated here directly
+  // (no appointment selected) so we show a spinner briefly before the
+  // useEffect's navigate('/') kicks in.
   if (!pendingAppointment) {
     return (
       <div className="confirmation-container">
+        {/* Centred spinner shown while appointment data populates */}
         <div className="loading-state">
-          <h2>Loading...</h2>
+          <div className="loading-spinner" aria-label="Loading appointment details"></div>
+          <p className="loading-text">Loading your appointment details…</p>
         </div>
       </div>
     );
@@ -448,13 +454,20 @@ const BookingConfirmation = () => {
             🔙 Go Back & Edit
           </button>
 
-          {/* Confirm Booking Button */}
+          {/* Confirm Booking Button — disabled until terms checkbox is ticked */}
+          {/* isLoading disables both buttons during the async save operation    */}
           <button
             className="btn-primary"
             onClick={handleConfirmBooking}
             disabled={isLoading || !isChecked}
+            aria-busy={isLoading}
           >
-            {isLoading ? '⏳ Processing...' : '✅ Confirm Booking'}
+            {isLoading ? (
+              /* Inline spinner inside the button while saving */
+              <><span className="btn-spinner"></span> Processing…</>
+            ) : (
+              '✅ Confirm Booking'
+            )}
           </button>
         </div>
       </section>
