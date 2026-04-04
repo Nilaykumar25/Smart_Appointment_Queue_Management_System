@@ -72,3 +72,21 @@ router.post('/queue', async (req, res) => {
     client.release();
   }
 });
+
+// Implements: REQ-7, REQ-8 --- see SRS Section 3.7, 3.8
+// GET /queue/:patientId
+router.get('/queue/:patientId', async (req, res) => {
+  const { patientId } = req.params;
+
+  const { rows } = await db.query(
+    SELECT q.position,
+            (SELECT COUNT(*) FROM Queue WHERE position < q.position AND status = 'waiting') AS ahead,
+            (SELECT COUNT(*) * 10 FROM Queue WHERE position < q.position AND status = 'waiting') AS estimated_wait_minutes
+     FROM Queue q
+     WHERE q.patient_id =  AND q.status = 'waiting',
+    [patientId]
+  );
+
+  if (rows.length === 0) return res.status(404).json({ error: 'Not in queue' });
+  res.json(rows[0]);
+});
