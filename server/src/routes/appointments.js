@@ -90,3 +90,43 @@ router.get('/queue/:patientId', async (req, res) => {
   if (rows.length === 0) return res.status(404).json({ error: 'Not in queue' });
   res.json(rows[0]);
 });
+
+// Implements: REQ-12 --- see SRS Section 3.12
+// PATCH /appointments/:id/status
+router.patch('/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const client = await db.getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    const { rows: appt } = await client.query(
+      UPDATE Appointments SET status =  WHERE id =  RETURNING *,
+      [status, id]
+    );
+
+    if (appt.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    await client.query(
+      DELETE FROM Queue WHERE appointment_id = , [id]
+    );
+    await client.query(
+      UPDATE Queue SET position = position - 1
+       WHERE status = 'waiting' AND position > (
+         SELECT COALESCE(MIN(position), 0) FROM Queue WHERE appointment_id = 
+       ), [id]
+    );
+
+    await client.query('COMMIT');
+    res.json({ message: 'Status updated, queue recalculated', appointment: appt[0] });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'Status update failed' });
+  } finally {
+    client.release();
+  }
+});
