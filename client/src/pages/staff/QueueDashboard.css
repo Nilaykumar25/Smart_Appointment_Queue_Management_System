@@ -1,0 +1,25 @@
+.queue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.queue-header h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+}
+
+.patient-count {
+  color: #718096;
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.action-cell {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}

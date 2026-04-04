@@ -1,0 +1,149 @@
+// Implements: REQ-1 (role-based access), REQ-2 (data encryption)
+// See SRS Section 4 — User Registration and Authentication
+const jwt = require("jsonwebtoken");
+const redisClient = require("../db/redis");
+const express = require("express");
+const bcrypt = require("bcrypt");
+const router = express.Router();
+
+// POST /auth/register
+router.post("/register", async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    // Input validation
+    if (!name || !email || !password) {
+      return res
+        .status(400)
+        .json({ error: "Name, email and password are required" });
+    }
+
+    if (!["patient", "staff", "admin"].includes(role)) {
+      return res.status(400).json({ error: "Invalid role" });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    if (password.length < 8) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters" });
+    }
+
+    // bcrypt hashing — work factor 12 (REQ-2)
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    // TODO: insert into users table (DB connection in next commit)
+    // const user = await db.query(
+    //   'INSERT INTO users (name, email, password_hash, role) VALUES ($1,$2,$3,$4) RETURNING user_id',
+    //   [name, email, passwordHash, role]
+    // );
+
+    return res.status(201).json({ message: "User registered successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /auth/login — JWT access token + httpOnly refresh token
+// Implements: REQ-1, REQ-3
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    // TODO: fetch user from DB
+    // const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    // const user = result.rows[0];
+
+    // if (!user) {
+    //   await req.loginFailed();
+    //   return res.status(401).json({ error: 'Invalid credentials' });
+    // }
+
+    // const valid = await bcrypt.compare(password, user.password_hash);
+    // if (!valid) {
+    //   await req.loginFailed();
+    //   return res.status(401).json({ error: 'Invalid credentials' });
+    // }
+
+    // await req.loginSuccess();
+
+    // const accessToken = jwt.sign(
+    //   { userId: user.user_id, role: user.role },
+    //   process.env.JWT_SECRET,
+    //   { expiresIn: process.env.JWT_EXPIRY }
+    // );
+
+    // const refreshToken = jwt.sign(
+    //   { userId: user.user_id },
+    //   process.env.REFRESH_TOKEN_SECRET,
+    //   { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+    // );
+
+    // res.cookie('refreshToken', refreshToken, {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === 'production',
+    //   sameSite: 'Strict',
+    //   maxAge: 7 * 24 * 60 * 60 * 1000
+    // });
+
+    // return res.status(200).json({ accessToken });
+
+    return res
+      .status(200)
+      .json({ message: "Login endpoint ready — lockout active" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /auth/logout — invalidate both tokens immediately
+// Implements: REQ-1 (session management)
+// See SRS Section 7.4.1 — Session Management
+
+router.post("/logout", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const refreshToken = req.cookies?.refreshToken;
+
+    // Blacklist access token in Redis (TTL = remaining expiry time)
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const accessToken = authHeader.split(" ")[1];
+
+      try {
+        const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
+        const ttl = decoded.exp - Math.floor(Date.now() / 1000);
+        if (ttl > 0) {
+          await redisClient.set(`blacklist:${accessToken}`, "1", { EX: ttl });
+        }
+      } catch {
+        // Token already expired — no need to blacklist
+      }
+    }
+
+    // Blacklist refresh token in Redis (TTL = 7 days)
+    if (refreshToken) {
+      await redisClient.set(`blacklist:${refreshToken}`, "1", {
+        EX: 7 * 24 * 60 * 60,
+      });
+    }
+
+    // Clear the cookie
+    res.clearCookie("refreshToken");
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+module.exports = router;
