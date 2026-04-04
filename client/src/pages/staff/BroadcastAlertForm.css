@@ -1,0 +1,34 @@
+.broadcast-page {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.broadcast-page h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 6px;
+}
+
+.broadcast-page .subtitle {
+  color: #718096;
+  font-size: 0.9rem;
+  margin-bottom: 24px;
+}
+
+.char-counter {
+  font-size: 0.8rem;
+  color: #718096;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.char-counter.warning {
+  color: #e53e3e;
+}
+
+.field-error {
+  color: #e53e3e;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
