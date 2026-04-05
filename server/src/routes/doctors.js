@@ -6,20 +6,25 @@ const db = require('../db/connection');
 // GET /doctors?name=&specialty=
 router.get('/', async (req, res) => {
   const { name, specialty } = req.query;
-  let query = 'SELECT * FROM Doctors WHERE 1=1';
+  let query = 'SELECT * FROM doctors WHERE 1=1';
   const params = [];
 
   if (name) {
-    params.push(%%);
-    query +=  AND name ILIKE File{params.length};
+    params.push(`%${name}%`);
+    query += ` AND name ILIKE $${params.length}`;
   }
   if (specialty) {
     params.push(specialty);
-    query +=  AND specialty = File{params.length};
+    query += ` AND specialty = $${params.length}`;
   }
 
-  const { rows } = await db.query(query, params);
-  res.json(rows);
+  try {
+    const { rows } = await db.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('Doctor search error:', err);
+    res.status(500).json({ error: 'Failed to fetch doctors' });
+  }
 });
 
 module.exports = router;
