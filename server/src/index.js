@@ -2,7 +2,7 @@
 // Implements: All routes, CORS, cookie-parser, middleware mounting
 // See SRS Section 7.1 — System Architecture
 
-require("dotenv").config();
+require("dotenv").config({ path: require("path").resolve(__dirname, "../../.env") });
 const express      = require("express");
 const cors         = require("cors");
 const cookieParser = require("cookie-parser");
@@ -11,7 +11,7 @@ const app = express();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors({
-  origin:      process.env.CLIENT_URL || "http://localhost:5173",
+  origin:      process.env.CLIENT_URL || ["http://localhost:5173", "http://localhost:5174"],
   credentials: true,   // needed for httpOnly refresh token cookie
 }));
 app.use(express.json());

@@ -77,7 +77,7 @@ const Login = () => {
 
   /**
    * Handles form submission
-   * Validates form, calls login API, navigates to dashboard
+   * Validates form, calls login API, navigates based on role
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -87,10 +87,16 @@ const Login = () => {
     if (validateForm()) {
       try {
         // Call login function from auth context
-        await login(formData.email, formData.password);
+        const user = await login(formData.email, formData.password);
         
-        // Navigate to protected dashboard route
-        navigate('/dashboard');
+        // Navigate based on user role
+        if (user.role === 'admin') {
+          navigate('/admin/reports');
+        } else if (user.role === 'staff') {
+          navigate('/staff/queue');
+        } else {
+          navigate('/dashboard');
+        }
       } catch (err) {
         // Display authentication error to user
         setAuthError('Invalid email or password. Please try again.');

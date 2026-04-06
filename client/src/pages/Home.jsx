@@ -16,9 +16,14 @@ const Home = () => {
   // Get current user from authentication context
   const { user } = useAuth();
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users based on role
   // Prevents authenticated users from seeing landing page
   if (user) {
+    if (user.role === 'admin') {
+      return <Navigate to="/admin/reports" replace />;
+    } else if (user.role === 'staff') {
+      return <Navigate to="/staff/queue" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
 

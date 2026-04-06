@@ -20,6 +20,7 @@ function LoginPage() {
       const role = getRole();
       if (role === 'admin') navigate('/admin/reports', { replace: true });
       else if (role === 'staff') navigate('/staff/queue', { replace: true });
+      else if (role === 'patient') navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
 
