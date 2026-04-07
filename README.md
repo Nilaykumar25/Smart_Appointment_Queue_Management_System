@@ -739,11 +739,15 @@ This project is licensed under the MIT License - see `LICENSE` file for details.
 
 Make sure these are installed before setup:
 
-- Node.js v18 or higher
-- npm v9 or higher
-- PostgreSQL 14 or higher
-- Redis
-- Git
+- **Node.js** v18 or higher
+- **npm** v9 or higher
+- **PostgreSQL** 14 or higher
+- **Redis** v3.0 or higher
+  - Windows: Download from [https://github.com/microsoftarchive/redis/releases](https://github.com/microsoftarchive/redis/releases) or use [Memurai](https://www.memurai.com/)
+  - Mac: `brew install redis`
+  - Linux: `sudo apt install redis-server`
+  - Docker: `docker run -d -p 6379:6379 redis:alpine`
+- **Git**
 
 ---
 
@@ -756,32 +760,48 @@ git clone https://github.com/Nilaykumar25/Smart_Appointment_Queue_Management_Sys
 cd Smart_Appointment_Queue_Management_System
 ```
 
-### Step 2 — Set up environment variables
-
-```bash
-cp .env.example .env
-```
-
-Open `.env` and fill in all required values. See the [Environment Variables](#-environment-variables) section below.
-
-### Step 3 — Install backend dependencies
+### Step 2 — Install backend dependencies
 
 ```bash
 cd server
 npm install
 ```
 
-### Step 4 — Install frontend dependencies
+### Step 3 — Install frontend dependencies
 
 ```bash
 cd ../client
 npm install
 ```
 
-### Step 5 — Set up the database
+### Step 4 — Set up environment variables
 
 ```bash
-cd ../server
+cd ..
+cp .env.example .env
+```
+
+Open `.env` and fill in all required values. See the [Environment Variables](#-environment-variables) section below.
+
+### Step 5 — Start Redis
+
+Redis is required for token blacklisting and rate limiting.
+
+- **Windows**: Redis runs automatically as a service after installation, or start Memurai
+- **Mac**: `redis-server`
+- **Linux**: `sudo service redis-server start`
+- **Docker**: `docker run -d -p 6379:6379 --name redis redis:alpine`
+
+Verify Redis is running:
+```bash
+redis-cli ping
+# Should return: PONG
+```
+
+### Step 6 — Set up the database
+
+```bash
+cd server
 npm run migrate
 ```
 
@@ -791,23 +811,32 @@ Seed test data (optional but recommended for testing):
 npm run seed
 ```
 
-### Step 6 — Start the backend server
+### Step 7 — Create admin user
 
 ```bash
-cd server
-npm run dev
+node create-admin.js
+```
+
+This creates an admin account with credentials:
+- Email: `admin@demo.com`
+- Password: `admin123`
+
+### Step 8 — Start the backend server
+
+```bash
+npm start
 ```
 
 Server runs on http://localhost:5000
 
-### Step 7 — Start the frontend
+### Step 9 — Start the frontend (in a new terminal)
 
 ```bash
-cd client
+cd ../client
 npm run dev
 ```
 
-App runs on http://127.0.0.1:3000
+App runs on http://localhost:5173
 
 ---
 
@@ -852,13 +881,18 @@ REACT_APP_API_BASE_URL=http://localhost:5000/api
 
 ## 🧪 Test Credentials
 
-> Available after running `npm run seed`. For development and testing only — not for production.
+> Available after running `npm run seed` and `node create-admin.js`. For development and testing only — not for production.
 
 | Role | Email | Password |
 |---|---|---|
-| Admin | admin@saqms.clinic | Admin@1234 |
-| Staff | staff@saqms.clinic | Staff@1234 |
-| Patient | patient@saqms.clinic | Patient@1234 |
+| Admin | admin@demo.com | admin123 |
+| Staff | aryan@demo.com | seeded |
+| Staff | priya@demo.com | seeded |
+| Staff | rohan@demo.com | seeded |
+| Patient | patient1@demo.com | password123 |
+| Patient | patient2@demo.com | password123 |
+
+**Note:** Staff accounts with "seeded" password are for doctor profiles only. Use the admin account to access the staff/admin portal.
 
 ---
 
@@ -965,14 +999,15 @@ Smart_Appointment_Queue_Management_System/
 
 ## ⚠️ Known Limitations
 
+- **Redis must be running** before starting the server. If Redis is unavailable, token blacklisting and rate limiting will be disabled (acceptable for development).
 - Real-time queue updates use polling every 30 seconds. WebSocket push updates planned for v2.0.
-- SMS notifications via Twilio require a paid account for non-trial phone numbers.
+- **SMS notifications require a valid Twilio account** with a paid plan for non-trial phone numbers.
+- **Email notifications require a valid SendGrid API key** for production use.
 - System supports single-clinic deployment only. Multi-clinic support planned for v2.0.
 - PDF report generation may be slow for 100+ appointments.
 - MFA is architected but not yet activated. `mfa_secret` column exists in the database but TOTP is not enforced.
 - Average consultation duration for wait time calculation must be manually configured by admin (TBD-1 in SRS).
 - Tested on Chrome and Firefox. Safari not fully verified.
-- Frontend currently uses mock data. Full backend integration will be completed in next sprint.
 
 ---
 
