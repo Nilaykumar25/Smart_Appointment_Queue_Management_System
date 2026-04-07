@@ -1,143 +1,145 @@
 // Implements: REQ-1 (role-based access), REQ-2 (data encryption)
 // See SRS Section 4 — User Registration and Authentication
+require("dotenv").config({ path: require("path").resolve(__dirname, "../../../.env") });
 const jwt = require("jsonwebtoken");
 const redisClient = require("../db/redis");
 const express = require("express");
 const bcrypt = require("bcrypt");
+const db = require("../db/connection");
 const router = express.Router();
 
 // POST /auth/register
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role = "patient" } = req.body;
 
-    // Input validation
-    if (!name || !email || !password) {
-      return res
-        .status(400)
-        .json({ error: "Name, email and password are required" });
-    }
+    if (!name || !email || !password)
+      return res.status(400).json({ error: "Name, email and password are required" });
 
-    if (!["patient", "staff", "admin"].includes(role)) {
+    if (!["patient", "staff", "admin"].includes(role))
       return res.status(400).json({ error: "Invalid role" });
-    }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       return res.status(400).json({ error: "Invalid email format" });
-    }
 
-    if (password.length < 8) {
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 8 characters" });
-    }
+    if (password.length < 8)
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
 
-    // bcrypt hashing — work factor 12 (REQ-2)
+    // Check duplicate email
+    const existing = await db.query("SELECT user_id FROM users WHERE email = $1", [email]);
+    if (existing.rows.length > 0)
+      return res.status(409).json({ error: "Email already registered" });
+
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // TODO: insert into users table (DB connection in next commit)
-    // const user = await db.query(
-    //   'INSERT INTO users (name, email, password_hash, role) VALUES ($1,$2,$3,$4) RETURNING user_id',
-    //   [name, email, passwordHash, role]
-    // );
+    const { rows } = await db.query(
+      `INSERT INTO users (name, email, password_hash, role)
+       VALUES ($1, $2, $3, $4) RETURNING user_id, name, email, role`,
+      [name, email, passwordHash, role]
+    );
 
-    return res.status(201).json({ message: "User registered successfully" });
+    const user = rows[0];
+    const accessToken = jwt.sign(
+      { userId: user.user_id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRY || "15m" }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user.user_id },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d" }
+    );
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(201).json({
+      accessToken,
+      userId: user.user_id,
+      role: user.role,
+      name: user.name,
+    });
   } catch (err) {
-    console.error(err);
+    console.error("Register error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// POST /auth/login — JWT access token + httpOnly refresh token
-// Implements: REQ-1, REQ-3
+// POST /auth/login
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ error: "Email and password are required" });
-    }
 
-    // TODO: fetch user from DB
-    // const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-    // const user = result.rows[0];
+    const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+    const user = result.rows[0];
 
-    // if (!user) {
-    //   await req.loginFailed();
-    //   return res.status(401).json({ error: 'Invalid credentials' });
-    // }
+    if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
-    // const valid = await bcrypt.compare(password, user.password_hash);
-    // if (!valid) {
-    //   await req.loginFailed();
-    //   return res.status(401).json({ error: 'Invalid credentials' });
-    // }
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: "Invalid credentials" });
 
-    // await req.loginSuccess();
+    if (!user.is_active) return res.status(403).json({ error: "Account disabled" });
 
-    // const accessToken = jwt.sign(
-    //   { userId: user.user_id, role: user.role },
-    //   process.env.JWT_SECRET,
-    //   { expiresIn: process.env.JWT_EXPIRY }
-    // );
+    const accessToken = jwt.sign(
+      { userId: user.user_id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRY || "15m" }
+    );
 
-    // const refreshToken = jwt.sign(
-    //   { userId: user.user_id },
-    //   process.env.REFRESH_TOKEN_SECRET,
-    //   { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
-    // );
+    const refreshToken = jwt.sign(
+      { userId: user.user_id },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d" }
+    );
 
-    // res.cookie('refreshToken', refreshToken, {
-    //   httpOnly: true,
-    //   secure: process.env.NODE_ENV === 'production',
-    //   sameSite: 'Strict',
-    //   maxAge: 7 * 24 * 60 * 60 * 1000
-    // });
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
-    // return res.status(200).json({ accessToken });
-
-    return res
-      .status(200)
-      .json({ message: "Login endpoint ready — lockout active" });
+    return res.status(200).json({
+      accessToken,
+      userId: user.user_id,
+      role: user.role,
+      name: user.name,
+    });
   } catch (err) {
-    console.error(err);
+    console.error("Login error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// POST /auth/logout — invalidate both tokens immediately
-// Implements: REQ-1 (session management)
-// See SRS Section 7.4.1 — Session Management
-
+// POST /auth/logout
 router.post("/logout", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     const refreshToken = req.cookies?.refreshToken;
 
-    // Blacklist access token in Redis (TTL = remaining expiry time)
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const accessToken = authHeader.split(" ")[1];
-
       try {
         const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
         const ttl = decoded.exp - Math.floor(Date.now() / 1000);
         if (ttl > 0) {
           await redisClient.set(`blacklist:${accessToken}`, "1", { EX: ttl });
         }
-      } catch {
-        // Token already expired — no need to blacklist
-      }
+      } catch { /* already expired */ }
     }
 
-    // Blacklist refresh token in Redis (TTL = 7 days)
     if (refreshToken) {
-      await redisClient.set(`blacklist:${refreshToken}`, "1", {
-        EX: 7 * 24 * 60 * 60,
-      });
+      await redisClient.set(`blacklist:${refreshToken}`, "1", { EX: 7 * 24 * 60 * 60 });
     }
 
-    // Clear the cookie
     res.clearCookie("refreshToken");
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (err) {

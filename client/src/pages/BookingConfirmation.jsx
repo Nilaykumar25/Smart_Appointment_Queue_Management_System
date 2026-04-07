@@ -46,6 +46,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getUserId, getToken } from '../services/auth';
+
+const BASE_URL = 'http://localhost:5000/api';
 
 const BookingConfirmation = () => {
   // ===========================
@@ -159,45 +162,55 @@ const BookingConfirmation = () => {
 
     try {
       // ===== APPOINTMENT SAVING LOGIC =====
-      // Create final appointment object with all details
       const completeAppointment = {
         ...pendingAppointment,
-        // Patient information collected from form
         patientInfo: {
           reasonForVisit: formData.reasonForVisit,
           medicalHistory: formData.medicalHistory,
           allergies: formData.allergies,
           currentMedications: formData.currentMedications,
         },
-        // Metadata
         bookedOn: new Date().toISOString(),
         status: 'confirmed',
-        patientId: user?.id,
+        patientId: getUserId(),
       };
 
-      // Save to localStorage (temporary storage)
+      // Save to backend API
+      const userId = getUserId();
+      if (userId && pendingAppointment.schedule_id) {
+        try {
+          const res = await fetch(`${BASE_URL}/appointments`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${getToken()}`,
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              patient_id: userId,
+              doctor_id: pendingAppointment.doctorId,
+              schedule_id: pendingAppointment.schedule_id,
+            }),
+          });
+          if (res.ok) {
+            const saved = await res.json();
+            completeAppointment.appointment_id = saved.appointment_id;
+          }
+        } catch (err) {
+          console.warn('API save failed, falling back to localStorage:', err);
+        }
+      }
+
+      // Always persist locally for dashboard display
       const existingAppointments = localStorage.getItem('userAppointments');
       const appointments = existingAppointments ? JSON.parse(existingAppointments) : [];
       appointments.push(completeAppointment);
       localStorage.setItem('userAppointments', JSON.stringify(appointments));
 
-      // REQ-7 & REQ-8: Generate Queue Data (Queue Position and Estimated Wait Time)
-      // When appointment is booked, automatically add patient to queue
-      const queuePosition = Math.floor(Math.random() * 10) + 1; // Random position 1-10
-      const estimatedWaitTime = queuePosition * 5; // Each position = ~5 minutes
-      
-      const queueData = {
-        position: queuePosition,
-        estimatedWaitTime: estimatedWaitTime
-      };
-      localStorage.setItem('userQueueData', JSON.stringify(queueData));
-
-      // TODO: FUTURE - Send to backend API
-      // const response = await fetch('/api/appointments/create', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(completeAppointment)
-      // });
+      // REQ-7 & REQ-8: Queue data
+      const queuePosition = Math.floor(Math.random() * 10) + 1;
+      const estimatedWaitTime = queuePosition * 5;
+      localStorage.setItem('userQueueData', JSON.stringify({ position: queuePosition, estimatedWaitTime }));
 
       // Show success message
       setConfirmationMessage('✅ Appointment booked successfully!');

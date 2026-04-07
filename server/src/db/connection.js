@@ -2,16 +2,26 @@
 // Used by: all route files (appointments, doctors, slots, scheduleRoutes, cron)
 // See SRS Section 7.3 — Database Schema
 
-require("dotenv").config();
+require("dotenv").config({ path: require("path").resolve(__dirname, "../../.env") });
 const { Pool } = require("pg");
 
-const pool = new Pool({
-  host:     process.env.DB_HOST     || "localhost",
-  port:     parseInt(process.env.DB_PORT) || 5432,
-  database: process.env.DB_NAME     || "saqms_db",
-  user:     process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+const pool = new Pool(
+  process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
+      }
+    : {
+        host:     process.env.DB_HOST     || "localhost",
+        port:     parseInt(process.env.DB_PORT) || 5432,
+        database: process.env.DB_NAME     || "saqms_db",
+        user:     process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        ssl: process.env.DB_HOST && process.env.DB_HOST.includes("supabase")
+          ? { rejectUnauthorized: false }
+          : false,
+      }
+);
 
 // Test connection on startup
 pool.connect((err, client, release) => {
