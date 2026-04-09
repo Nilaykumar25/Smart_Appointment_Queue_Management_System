@@ -66,22 +66,55 @@ main {
 }
 
 /*========== NAVBAR ==========*/
+/*
+ * Fixed, always-visible navbar with glassmorphism backdrop.
+ * .navbar--scrolled adds extra shadow depth once user scrolls.
+ * .page-content-wrapper offsets page body so nothing hides behind the bar.
+ */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, var(--surface-primary) 0%, var(--bg-secondary) 100%);
-  border-bottom: 2px solid var(--border-light);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
-  position: sticky;
+  padding: 0.85rem 2.5rem;
+  /* Glassmorphism background */
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1.5px solid rgba(102, 126, 234, 0.12);
+  box-shadow: 0 2px 16px rgba(102, 126, 234, 0.07);
+  /* Fixed so it persists on scroll */
+  position: fixed;
   top: 0;
-  z-index: 50;
+  left: 0;
+  right: 0;
+  z-index: 1000;
   gap: 2rem;
+  transition: box-shadow 0.3s ease, background 0.3s ease;
 }
 
+/* Stronger shadow when page is scrolled */
+.navbar--scrolled {
+  box-shadow: 0 4px 32px rgba(102, 126, 234, 0.18);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+/*
+ * Offset wrapper — pushes all page content below the fixed navbar.
+ * Navbar height is ~68px; we use 70px for a comfortable gap.
+ */
+.page-content-wrapper {
+  padding-top: 70px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Brand / logo */
 .nav-brand {
-  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.4rem;
   font-weight: 800;
   background: linear-gradient(135deg, var(--primary), var(--secondary));
   -webkit-background-clip: text;
@@ -89,73 +122,106 @@ main {
   background-clip: text;
   text-decoration: none;
   letter-spacing: -0.025em;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease;
   font-family: 'Poppins', sans-serif;
   white-space: nowrap;
 }
 
 .nav-brand:hover {
-  transform: scale(1.05);
+  transform: scale(1.04);
+  opacity: 0.9;
 }
 
+/* Small icon beside the brand name */
+.nav-brand-icon {
+  font-size: 1.3rem;
+  -webkit-text-fill-color: initial; /* restore emoji color */
+  filter: drop-shadow(0 1px 3px rgba(102, 126, 234, 0.25));
+}
+
+/* Centre nav links */
 .nav-menu {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.25rem;
   align-items: center;
   margin: 0 auto;
 }
 
+/* Individual nav link */
 .nav-link {
-  padding: 0.6rem 1rem;
+  padding: 0.55rem 1rem;
   border-radius: 0.5rem;
-  font-size: 0.95rem;
+  font-size: 0.93rem;
   font-weight: 600;
   text-decoration: none;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid transparent;
+  transition: color 0.25s ease, background 0.25s ease;
+  border: none;
   position: relative;
 }
 
+/* Animated underline on hover/active */
 .nav-link::after {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
+  bottom: 4px;
+  left: 10px;
+  right: 10px;
   height: 2px;
+  border-radius: 2px;
   background: linear-gradient(90deg, var(--primary), var(--secondary));
-  transition: width 0.3s ease;
+  transform: scaleX(0);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
 }
 
 .nav-link:hover {
   color: var(--primary);
+  background: var(--primary-light);
 }
 
 .nav-link:hover::after {
-  width: 100%;
+  transform: scaleX(1);
 }
 
+/* Active page indicator */
+.nav-link--active {
+  color: var(--primary) !important;
+  font-weight: 700;
+}
+
+.nav-link--active::after {
+  transform: scaleX(1);
+}
+
+/* Right-side action buttons container */
 .nav-links {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
   white-space: nowrap;
 }
 
+/* Shared button base */
 .nav-btn {
-  padding: 0.6rem 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1.2rem;
   border-radius: 0.6rem;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid transparent;
   font-family: 'Inter', sans-serif;
+  letter-spacing: 0.2px;
+  background: none;
 }
 
+/* Outline variant */
 .nav-btn.outline {
   border: 2px solid var(--primary);
   color: var(--primary);
@@ -166,8 +232,10 @@ main {
   background-color: var(--primary-light);
   color: var(--primary);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
+/* Solid / filled variant */
 .nav-btn.solid {
   color: white;
   background: linear-gradient(135deg, var(--primary), var(--secondary));
@@ -176,16 +244,79 @@ main {
 
 .nav-btn.solid:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.35);
 }
 
+/* Mobile hamburger toggle — hidden on desktop */
 .mobile-menu-toggle {
   display: none;
   background: none;
-  border: none;
-  font-size: 1.5rem;
+  border: 2px solid var(--border-light);
+  border-radius: 0.5rem;
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0.35rem 0.6rem;
   cursor: pointer;
   color: var(--primary);
+  transition: all 0.2s ease;
+}
+
+.mobile-menu-toggle:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+/* ── Responsive: collapse nav on small screens ── */
+@media (max-width: 768px) {
+  .navbar {
+    flex-wrap: wrap;
+    padding: 0.75rem 1.25rem;
+    gap: 0;
+  }
+
+  .nav-brand {
+    flex: 1;
+  }
+
+  .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-menu {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--border-light);
+    margin-top: 0.5rem;
+    gap: 0.25rem;
+    order: 3;
+  }
+
+  .nav-menu.active {
+    display: flex;
+  }
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    padding: 0.5rem 0 0.75rem;
+    gap: 0.5rem;
+    order: 4;
+  }
+
+  .nav-menu.active ~ .nav-links,
+  .nav-menu.active + .nav-links {
+    display: flex;
+  }
+
+  .nav-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /*========== HOME PAGE ==========*/

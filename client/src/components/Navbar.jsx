@@ -1,81 +1,135 @@
 /**
  * ========================================
  * NAVBAR COMPONENT
- * Global navigation bar shown on all pages
+ * Constant fixed navigation bar shown on all pages
  * ========================================
  * Features:
- * - Responsive navigation
- * - Navigation links for About, Contact, Help
- * - Conditional rendering based on auth state
- * - Logout functionality
+ * - Fixed position — always visible on scroll
+ * - Active link highlighting via NavLink
+ * - Home, About Us, Contact, Help nav links
+ * - Sign In / Sign Up for unauthenticated users
+ * - Dashboard, Find Doctors, Sign Out for authenticated users
+ * - Mobile hamburger menu
+ * - Backdrop blur glassmorphism effect
  */
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
-  // Get user state and logout function from auth context
+  /* ── Auth state ── */
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  /* ── Mobile menu toggle ── */
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  /* ── Scrolled state – adds shadow depth when user scrolls ── */
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  /* Close mobile menu on any navigation */
+  const closeMobile = () => setMobileMenuOpen(false);
+
+  /* Handle sign-out: clear auth then redirect to login page */
+  const handleLogout = () => {
+    logout();
+    closeMobile();
+    navigate('/login');
+  };
+
+  /* Helper – returns className for NavLink based on active state */
+  const navLinkClass = ({ isActive }) =>
+    isActive ? 'nav-link nav-link--active' : 'nav-link';
+
   return (
-    <nav className="navbar">
+    <nav className={`navbar${scrolled ? ' navbar--scrolled' : ''}`}>
       {/* ===== BRAND / LOGO ===== */}
-      {/* Links to home page, always visible */}
-      <Link to="/" className="nav-brand">
+      <Link to="/" className="nav-brand" onClick={closeMobile}>
+        <span className="nav-brand-icon">🏥</span>
         Patient Portal
       </Link>
 
       {/* ===== MOBILE MENU TOGGLE ===== */}
-      <button 
+      <button
+        id="mobile-menu-btn"
         className="mobile-menu-toggle"
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        onClick={() => setMobileMenuOpen(prev => !prev)}
+        aria-label="Toggle navigation menu"
+        aria-expanded={mobileMenuOpen}
       >
-        ☰
+        {mobileMenuOpen ? '✕' : '☰'}
       </button>
 
-      {/* ===== NAVIGATION MENU ===== */}
-      {/* Center navigation links */}
-      <div className={`nav-menu ${mobileMenuOpen ? 'active' : ''}`}>
-        <Link to="/" className="nav-link">Home</Link>
-        <Link to="/about" className="nav-link">About Us</Link>
-        <Link to="/contact" className="nav-link">Contact</Link>
-        <Link to="/help" className="nav-link">Help</Link>
+      {/* ===== CENTER NAVIGATION LINKS ===== */}
+      <div className={`nav-menu${mobileMenuOpen ? ' active' : ''}`}>
+        <NavLink to="/" className={navLinkClass} end onClick={closeMobile}>
+          Home
+        </NavLink>
+        <NavLink to="/about" className={navLinkClass} onClick={closeMobile}>
+          About Us
+        </NavLink>
+        <NavLink to="/contact" className={navLinkClass} onClick={closeMobile}>
+          Contact
+        </NavLink>
+        <NavLink to="/help" className={navLinkClass} onClick={closeMobile}>
+          Help
+        </NavLink>
       </div>
 
-      {/* ===== NAVIGATION ACTIONS ===== */}
-      {/* Right-aligned buttons, change based on auth state */}
+      {/* ===== RIGHT-SIDE ACTION BUTTONS ===== */}
       <div className="nav-links">
         {user ? (
+          /* ── Authenticated state ── */
           <>
-            {/* Authenticated User: Show greeting and actions */}
-            <span style={{ 
-              color: 'var(--text-primary)', 
-              fontSize: '0.95rem', 
-              fontWeight: 600,
-              padding: '0.5rem 0.75rem'
-            }}>
-              
-            </span>
-            {/* REQ-4: Find Doctors link for authenticated users */}
-            <Link to="/doctors" className="nav-btn outline">
+            <NavLink
+              to="/doctors"
+              className="nav-btn outline"
+              onClick={closeMobile}
+            >
               👨‍⚕️ Find Doctors
-            </Link>
-            <Link to="/dashboard" className="nav-btn outline">Dashboard</Link>
-            <button 
-              onClick={logout} 
-              className="nav-btn outline" 
-              style={{ cursor: 'pointer', border: 'none' }}
+            </NavLink>
+            <NavLink
+              to="/dashboard"
+              className="nav-btn outline"
+              onClick={closeMobile}
+            >
+              Dashboard
+            </NavLink>
+            <button
+              id="sign-out-btn"
+              onClick={handleLogout}
+              className="nav-btn solid"
+              style={{ cursor: 'pointer' }}
             >
               Sign Out
             </button>
           </>
         ) : (
+          /* ── Unauthenticated state ── */
           <>
-            {/* Unauthenticated User: Show login and register links */}
-            <Link to="/login" className="nav-btn outline">Sign In</Link>
-            <Link to="/register" className="nav-btn solid">Register</Link>
+            <Link
+              to="/login"
+              id="sign-in-btn"
+              className="nav-btn outline"
+              onClick={closeMobile}
+            >
+              Sign In
+            </Link>
+            <Link
+              to="/register"
+              id="sign-up-btn"
+              className="nav-btn solid"
+              onClick={closeMobile}
+            >
+              Sign Up
+            </Link>
           </>
         )}
       </div>

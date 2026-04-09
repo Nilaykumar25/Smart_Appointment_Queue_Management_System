@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { QueueProvider } from './context/QueueContext';
 
@@ -32,32 +32,46 @@ import ReportsPage from './pages/admin/ReportsPage';
 
 import './App.css';
 
+/**
+ * PublicLayout — wraps all non-admin routes with the constant Navbar.
+ * The Navbar is fixed at the top; page content is offset via .page-content-wrapper.
+ */
+const PublicLayout = () => (
+  <>
+    <Navbar />
+    <div className="page-content-wrapper">
+      <Outlet />
+    </div>
+  </>
+);
+
 function App() {
   return (
     <AuthProvider>
       <QueueProvider>
         <BrowserRouter>
           <Routes>
-            {/* ── Public routes ── */}
-            <Route path="/"         element={<Home />} />
-            <Route path="/login"    element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/about"    element={<AboutUs />} />
-            <Route path="/contact"  element={<ContactUs />} />
-            <Route path="/help"     element={<Help />} />
+            {/* ── All routes share the Navbar via PublicLayout ── */}
+            <Route element={<PublicLayout />}>
+              {/* Public pages */}
+              <Route path="/"            element={<Home />} />
+              <Route path="/login"       element={<Login />} />
+              <Route path="/register"    element={<Register />} />
+              <Route path="/about"       element={<AboutUs />} />
+              <Route path="/contact"     element={<ContactUs />} />
+              <Route path="/help"        element={<Help />} />
+              <Route path="/staff-login" element={<LoginPage />} />
 
-            {/* Staff / Admin login page */}
-            <Route path="/staff-login" element={<LoginPage />} />
-
-            {/* ── Patient protected routes ── */}
-            <Route element={<ProtectedRoute allowedRoles={['patient', 'staff', 'admin']} />}>
-              <Route path="/doctors"                      element={<><Navbar /><DoctorSearch /></>} />
-              <Route path="/book-appointment/:doctorId"   element={<><Navbar /><BookAppointment /></>} />
-              <Route path="/booking-confirmation"         element={<><Navbar /><BookingConfirmation /></>} />
-              <Route path="/dashboard"                    element={<><Navbar /><Dashboard /></>} />
+              {/* ── Patient protected routes ── */}
+              <Route element={<ProtectedRoute allowedRoles={['patient', 'staff', 'admin']} />}>
+                <Route path="/doctors"                    element={<DoctorSearch />} />
+                <Route path="/book-appointment/:doctorId" element={<BookAppointment />} />
+                <Route path="/booking-confirmation"       element={<BookingConfirmation />} />
+                <Route path="/dashboard"                  element={<Dashboard />} />
+              </Route>
             </Route>
 
-            {/* ── Staff + Admin routes ── */}
+            {/* ── Staff + Admin routes (use their own AdminShell with sidebar) ── */}
             <Route element={<ProtectedRoute allowedRoles={['staff', 'admin']} />}>
               <Route element={<AdminShell />}>
                 <Route path="/staff/queue"     element={<QueueDashboard />} />
