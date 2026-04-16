@@ -33,7 +33,7 @@ router.get('/all', requireRole(['admin', 'staff']), async (req, res) => {
 });
 
 // Implements: REQ-5 --- see SRS Section 3.5
-// POST /appointments --- DB-level lock prevents double booking
+// POST /appointments --- DB-level lock + explicit checks prevent double booking
 router.post('/', async (req, res) => {
   const { patient_id, doctor_id, schedule_id } = req.body;
   const client = await db.getClient();
@@ -41,6 +41,7 @@ router.post('/', async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    // REQ-5: Lock the slot row to prevent concurrent bookings of the same slot
     const { rows: slot } = await client.query(
       `SELECT * FROM schedules WHERE schedule_id = $1 AND is_blackout = FALSE FOR UPDATE`,
       [schedule_id]
@@ -48,7 +49,32 @@ router.post('/', async (req, res) => {
 
     if (slot.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(409).json({ error: 'Slot no longer available' });
+      return res.status(409).json({ error: 'This slot is unavailable or has been blocked.' });
+    }
+
+    // REQ-5: Check if slot is already booked by anyone (explicit check before insert)
+    const { rows: existing } = await client.query(
+      `SELECT appointment_id FROM appointments
+       WHERE schedule_id = $1
+         AND status NOT IN ('Completed', 'No-Show')`,
+      [schedule_id]
+    );
+
+    if (existing.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'This time slot has just been booked by another patient. Please select a different slot.' });
+    }
+
+    // REQ-5: Prevent same patient from booking the same slot twice
+    const { rows: patientDuplicate } = await client.query(
+      `SELECT appointment_id FROM appointments
+       WHERE patient_id = $1 AND schedule_id = $2`,
+      [patient_id, schedule_id]
+    );
+
+    if (patientDuplicate.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'You already have a booking for this time slot.' });
     }
 
     const { rows: appt } = await client.query(
@@ -65,6 +91,10 @@ router.post('/', async (req, res) => {
     res.status(201).json(appt[0]);
   } catch (err) {
     await client.query('ROLLBACK');
+    // REQ-5: Handle DB-level unique constraint violation (race condition fallback)
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'This time slot was just taken. Please select a different slot.' });
+    }
     console.error('Booking error:', err);
     res.status(500).json({ error: 'Booking failed' });
   } finally {
@@ -73,6 +103,7 @@ router.post('/', async (req, res) => {
 });
 
 // Implements: REQ-7 --- see SRS Section 3.7
+// Implements: REQ-8 --- Wait time based on avg_consultation_duration
 // POST /appointments/queue --- called internally after booking is confirmed
 router.post('/queue', async (req, res) => {
   const { appointment_id, patient_id } = req.body;
@@ -81,11 +112,12 @@ router.post('/queue', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // Get appointment details (doctor_id and date)
+    // REQ-8: Get appointment details including doctor's avg_consultation_duration
     const { rows: apptDetails } = await client.query(
-      `SELECT a.doctor_id, s.date, s.start_time
+      `SELECT a.doctor_id, s.date, s.start_time, d.avg_consultation_duration
        FROM appointments a
        JOIN schedules s ON s.schedule_id = a.schedule_id
+       JOIN doctors d   ON d.doctor_id   = a.doctor_id
        WHERE a.appointment_id = $1`,
       [appointment_id]
     );
@@ -95,7 +127,9 @@ router.post('/queue', async (req, res) => {
       return res.status(404).json({ error: 'Appointment not found' });
     }
 
-    const { doctor_id, date, start_time } = apptDetails[0];
+    const { doctor_id, date, start_time, avg_consultation_duration } = apptDetails[0];
+    // REQ-8: Use doctor's avg consultation duration (fallback to 15 min if null)
+    const consultDuration = avg_consultation_duration || 15;
 
     // Count existing queue entries for same doctor on same day with earlier time slots
     const { rows: pos } = await client.query(
@@ -111,7 +145,8 @@ router.post('/queue', async (req, res) => {
     );
 
     const queuePosition = parseInt(pos[0].position) + 1;
-    const estimatedWaitTime = queuePosition * 10; // 10 minutes per position
+    // REQ-8: Wait time = patients ahead × avg consultation duration
+    const estimatedWaitTime = (queuePosition - 1) * consultDuration;
 
     const { rows: entry } = await client.query(
       `INSERT INTO queue (appointment_id, queue_position, estimated_wait_time)
@@ -120,7 +155,7 @@ router.post('/queue', async (req, res) => {
     );
 
     await client.query('COMMIT');
-    res.status(201).json(entry[0]);
+    res.status(201).json({ ...entry[0], avg_consultation_duration: consultDuration });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Queue entry error:', err);
@@ -140,6 +175,7 @@ router.get('/queue/:patientId', async (req, res) => {
       `SELECT q.queue_position AS position,
               q.estimated_wait_time,
               a.doctor_id,
+              d.avg_consultation_duration,
               s.date,
               s.start_time,
               (SELECT COUNT(*)
@@ -153,6 +189,7 @@ router.get('/queue/:patientId', async (req, res) => {
        FROM queue q
        JOIN appointments a ON a.appointment_id = q.appointment_id
        JOIN schedules s ON s.schedule_id = a.schedule_id
+       JOIN doctors d ON d.doctor_id = a.doctor_id
        WHERE a.patient_id = $1
          AND a.status IN ('Booked', 'Arrived')
        ORDER BY s.date, s.start_time
@@ -161,7 +198,13 @@ router.get('/queue/:patientId', async (req, res) => {
     );
 
     if (rows.length === 0) return res.status(404).json({ error: 'Not in queue' });
-    res.json(rows[0]);
+
+    const row = rows[0];
+    const consultDuration = row.avg_consultation_duration || 15;
+    // REQ-8: Recalculate wait time from live "ahead" count × avg consultation duration
+    const liveWaitTime = parseInt(row.ahead) * consultDuration;
+
+    res.json({ ...row, estimated_wait_time: liveWaitTime, avg_consultation_duration: consultDuration });
   } catch (err) {
     console.error('Queue fetch error:', err);
     res.status(500).json({ error: 'Failed to fetch queue position' });
@@ -192,21 +235,23 @@ router.get('/queue/:patientId', async (req, res) => {
  */
 async function recalculateQueuePositions(client, appointmentId) {
   try {
-    // Step 1: Get the completed appointment's doctor and date
+    // Step 1: Get the completed appointment's doctor, date, and avg consultation duration
     const { rows: apptInfo } = await client.query(
-      `SELECT a.doctor_id, s.date
+      `SELECT a.doctor_id, s.date, d.avg_consultation_duration
        FROM appointments a
        JOIN schedules s ON s.schedule_id = a.schedule_id
+       JOIN doctors d   ON d.doctor_id   = a.doctor_id
        WHERE a.appointment_id = $1`,
       [appointmentId]
     );
 
-    if (apptInfo.length === 0) return; // Appointment not found, skip recalculation
+    if (apptInfo.length === 0) return;
 
-    const { doctor_id, date } = apptInfo[0];
+    const { doctor_id, date, avg_consultation_duration } = apptInfo[0];
+    // REQ-8: Use doctor's avg consultation duration for wait time calculation
+    const consultDuration = avg_consultation_duration || 15;
 
     // Step 2 & 3: Get all remaining queue entries for this doctor/date, sorted by time
-    // Mapping: All appointments still in "Booked" or "Arrived" status remain in queue
     const { rows: remainingQueue } = await client.query(
       `SELECT q.queue_id, a.appointment_id, s.start_time
        FROM queue q
@@ -219,11 +264,11 @@ async function recalculateQueuePositions(client, appointmentId) {
       [doctor_id, date]
     );
 
-    // Step 4 & 5: Update each remaining queue entry with new position
-    // Recalculate: position = index + 1, wait_time = position * 10 minutes
+    // Step 4 & 5: Reindex positions; wait time = patients ahead × avg consultation duration
     for (let i = 0; i < remainingQueue.length; i++) {
-      const newPosition = i + 1; // Reindex from 1
-      const newWaitTime = newPosition * 10; // 10 minutes per position
+      const newPosition = i + 1;
+      // REQ-8: patients ahead of this person × avg duration = their wait
+      const newWaitTime = i * consultDuration;
 
       await client.query(
         `UPDATE queue
@@ -233,10 +278,9 @@ async function recalculateQueuePositions(client, appointmentId) {
       );
     }
 
-    console.log(`[REQ-7] Queue recalculated for doctor ${doctor_id} on ${date}: ${remainingQueue.length} patients repositioned`);
+    console.log(`[REQ-7/REQ-8] Queue recalculated for doctor ${doctor_id} on ${date}: ${remainingQueue.length} patients repositioned (${consultDuration} min/patient)`);
   } catch (err) {
     console.error('[REQ-7] Error recalculating queue positions:', err);
-    // Don't throw — allow status update to complete even if recalculation fails
   }
 }
 

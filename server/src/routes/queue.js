@@ -1,4 +1,5 @@
 // Implements: REQ-7  — Real-time queue updates
+// Implements: REQ-8  — Wait time based on avg consultation duration
 // Implements: REQ-13 — Auto no-show flag (cron handles flagging; this serves the data)
 // See SRS Section 4.3 — Queue Management
 
@@ -8,28 +9,8 @@ const db          = require('../db/connection');
 const requireRole = require('../middleware/requireRole');
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// REQ-7: GET /api/queue/today — Real-time queue position mapping
+// REQ-7 & REQ-8: GET /api/queue/today — Real-time queue with accurate wait times
 // ═══════════════════════════════════════════════════════════════════════════════════════
-/**
- * Queue Position Mapping Strategy:
- *   - Each patient gets a queue position based on their appointment start time
- *   - Position = count of all appointments with earlier start times for same doctor/date
- *   - Patients remain in queue while status is "Booked" or "Arrived"
- *   - Once marked "Completed" or "No-Show", they exit queue and others move up
- *
- * Real-time Updates:
- *   - Staff calls this endpoint every 30 seconds (QueueDashboard polling)
- *   - Position mapping recalculates based on current status of all appointments
- *   - When a patient is marked "Attended" (Completed/No-Show):
- *     * They are deleted from queue table
- *     * All subsequent patients' positions shift down by 1
- *     * Dashboard clients poll and receive updated positions
- *
- * Display Order in Staff UI:
- *   - Ordered by queue_position (ascending)
- *   - Patients with lower positions appear first
- *   - Non-queued patients (Completed/No-Show) appear at end
- */
 router.get('/today', requireRole(['admin', 'staff']), async (req, res) => {
   try {
     const { rows } = await db.query(
@@ -38,10 +19,23 @@ router.get('/today', requireRole(['admin', 'staff']), async (req, res) => {
          u.name            AS "patientName",
          q.queue_position  AS "queuePosition",
          TO_CHAR(s.start_time, 'HH24:MI') AS "scheduledTime",
-         a.status
+         a.status,
+         d.avg_consultation_duration AS "avgConsultationDuration",
+         -- REQ-8: Live wait = patients ahead × avg consultation duration
+         (
+           SELECT COUNT(*)
+           FROM queue q2
+           JOIN appointments a2 ON a2.appointment_id = q2.appointment_id
+           JOIN schedules s2    ON s2.schedule_id    = a2.schedule_id
+           WHERE a2.doctor_id = a.doctor_id
+             AND s2.date = CURRENT_DATE
+             AND s2.start_time < s.start_time
+             AND a2.status IN ('Booked', 'Arrived')
+         ) * COALESCE(d.avg_consultation_duration, 15) AS "estimatedWaitMinutes"
        FROM appointments a
        JOIN users u        ON u.user_id       = a.patient_id
        JOIN schedules s    ON s.schedule_id   = a.schedule_id
+       JOIN doctors d      ON d.doctor_id     = a.doctor_id
        LEFT JOIN queue q   ON q.appointment_id = a.appointment_id
        WHERE s.date = CURRENT_DATE
          AND a.status NOT IN ('Completed', 'No-Show')
