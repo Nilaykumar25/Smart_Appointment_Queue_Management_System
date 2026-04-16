@@ -8,6 +8,10 @@ router.get('/:doctorId/slots', async (req, res) => {
   const { doctorId } = req.params;
   const { date } = req.query;
 
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'date query parameter is required (YYYY-MM-DD)' });
+  }
+
   try {
     const { rows } = await db.query(
       `SELECT s.schedule_id, s.doctor_id, s.date, s.start_time, s.end_time, s.slot_duration

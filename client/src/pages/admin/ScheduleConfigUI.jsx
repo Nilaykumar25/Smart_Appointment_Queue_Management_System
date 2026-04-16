@@ -451,9 +451,7 @@ function FacilitySection() {
     }
 
     try {
-      // REQ-9: Save facility hours for specific day
-      // Maps dayOfWeek (0-6) to backend facility_config table
-      const response = await apiCall(`/schedule/facility/${dayOfWeek}`, {
+      await apiCall(`/schedule/facility/${dayOfWeek}`, {
         method: 'PATCH',
         body: { startTime, endTime, isOperational },
       });

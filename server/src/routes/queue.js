@@ -77,7 +77,7 @@ router.get('/today', requireRole(['admin', 'staff']), async (req, res) => {
            JOIN appointments a2 ON a2.appointment_id = q2.appointment_id
            JOIN schedules s2    ON s2.schedule_id    = a2.schedule_id
            WHERE a2.doctor_id = a.doctor_id
-             AND s2.date = CURRENT_DATE
+             AND s2.date = s.date
              AND s2.start_time < s.start_time
              AND a2.status IN ('Booked', 'Arrived')
          ) * COALESCE(d.avg_consultation_duration, 15) AS "estimatedWaitMinutes"

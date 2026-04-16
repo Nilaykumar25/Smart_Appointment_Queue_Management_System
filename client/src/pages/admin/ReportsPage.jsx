@@ -1,7 +1,6 @@
 // Implements: REQ-19 — see SRS Section 4.8 (Administrative Reporting and Logs)
 // Implements: REQ-18 — see SRS Section 4.8 (Audit Logs)
 // Real endpoint: GET /api/reports/daily?date=YYYY-MM-DD
-// TODO: Backend endpoint not yet implemented — using live queue context as fallback
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiCall } from '../../services/api';
