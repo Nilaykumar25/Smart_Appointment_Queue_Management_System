@@ -1,46 +1,201 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap');
+
 .login-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
+  background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #2563EB 100%);
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative background blobs — matches patient portal hero */
+.login-page::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(14,165,233,0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.login-page::after {
+  content: '';
+  position: absolute;
+  bottom: -15%;
+  left: -5%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .login-card {
-  background: white;
-  padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  background: #ffffff;
+  padding: 3rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 400px;
-  border-top: 5px solid #2563EB;
+  max-width: 450px;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  animation: slideInUp 0.5s ease-out;
+}
+
+/* Blue top accent bar — matches .auth-card::before */
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: #2563EB;
 }
 
 .login-logo {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 2rem;
 }
 
 .login-logo .emoji {
   font-size: 3rem;
   display: block;
+  margin-bottom: 0.5rem;
 }
 
 .login-logo h1 {
-  font-size: 1.6rem;
-  font-weight: 700;
+  font-size: 2rem;
+  font-weight: 800;
   color: #0F172A;
   margin: 8px 0 4px;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.025em;
 }
 
 .login-logo p {
   color: #475569;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   margin: 0;
+  font-weight: 500;
+}
+
+/* Override Bootstrap form-control to match patient portal inputs */
+.login-card .form-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 0.65rem;
+  letter-spacing: 0.3px;
+}
+
+.login-card .form-control {
+  padding: 0.85rem 1rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 0.7rem;
+  font-size: 0.95rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  background-color: #ffffff;
+  color: #0F172A;
+}
+
+.login-card .form-control:focus {
+  border-color: #2563EB;
+  background-color: #EFF6FF;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+  outline: none;
+}
+
+.login-card .form-control::placeholder {
+  color: #94A3B8;
+}
+
+/* Sign In button — matches .auth-button */
+.login-card .btn-primary {
+  background: #2563EB;
+  border: none;
+  border-radius: 0.7rem;
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 1rem;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.5px;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+  transition: all 0.3s ease;
+  margin-top: 0.5rem;
+}
+
+.login-card .btn-primary:hover:not(:disabled) {
+  background: #1D4ED8;
+  transform: translateY(-4px);
+  box-shadow: 0 15px 30px rgba(37, 99, 235, 0.4);
+}
+
+.login-card .btn-primary:active {
+  transform: translateY(-1px);
+}
+
+.login-card .btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Staff login link at bottom */
+.staff-login-link {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #E2E8F0;
+}
+
+.staff-login-link p {
+  color: #475569;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+.staff-login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.5rem;
+  border: 2px solid #1e2a38;
+  border-radius: 0.7rem;
+  background: transparent;
+  color: #1e2a38;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  font-family: 'Poppins', sans-serif;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.staff-login-btn:hover {
+  background: #1e2a38;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(30, 42, 56, 0.3);
 }
 
 .field-error {
   color: #dc2626;
   font-size: 0.8rem;
   margin-top: 4px;
+  font-weight: 600;
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

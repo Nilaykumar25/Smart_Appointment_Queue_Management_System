@@ -1,12 +1,13 @@
 // Implements: REQ-1 (role-based access), REQ-2 (data encryption)
 // See SRS Section 4 — User Registration and Authentication
 require("dotenv").config({ path: require("path").resolve(__dirname, "../../../.env") });
-const jwt = require("jsonwebtoken");
-const redisClient = require("../db/redis");
-const express = require("express");
-const bcrypt = require("bcrypt");
-const db = require("../db/connection");
-const router = express.Router();
+const jwt          = require("jsonwebtoken");
+const redisClient  = require("../db/redis");
+const express      = require("express");
+const bcrypt       = require("bcrypt");
+const db           = require("../db/connection");
+const loginLimiter = require("../middleware/loginLimiter");
+const router       = express.Router();
 
 // POST /auth/register
 router.post("/register", async (req, res) => {
@@ -71,7 +72,7 @@ router.post("/register", async (req, res) => {
 });
 
 // POST /auth/login
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -81,12 +82,20 @@ router.post("/login", async (req, res) => {
     const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
     const user = result.rows[0];
 
-    if (!user) return res.status(401).json({ error: "Invalid credentials" });
+    if (!user) {
+      if (req.loginFailed) await req.loginFailed();
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: "Invalid credentials" });
+    if (!valid) {
+      if (req.loginFailed) await req.loginFailed();
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
 
     if (!user.is_active) return res.status(403).json({ error: "Account disabled" });
+
+    if (req.loginSuccess) await req.loginSuccess();
 
     const accessToken = jwt.sign(
       { userId: user.user_id, role: user.role },

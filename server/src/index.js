@@ -11,28 +11,35 @@ const app = express();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors({
-  origin:      process.env.CLIENT_URL || ["http://localhost:5173", "http://localhost:5174"],
+  origin: [
+    process.env.CLIENT_URL || "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+  ],
   credentials: true,   // needed for httpOnly refresh token cookie
 }));
 app.use(express.json());
 app.use(cookieParser());
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
-const authRoutes      = require("./routes/auth");
-const appointmentRoutes = require("./routes/appointments");
-const doctorRoutes    = require("./routes/doctors");
-const slotRoutes      = require("./routes/slots");
-const scheduleRoutes  = require("./routes/scheduleRoutes");
+const authRoutes         = require("./routes/auth");
+const appointmentRoutes  = require("./routes/appointments");
+const doctorRoutes       = require("./routes/doctors");
+const slotRoutes         = require("./routes/slots");
+const scheduleRoutes     = require("./routes/scheduleRoutes");
 const notificationRoutes = require("./routes/notifications");
-const queueRoutes         = require("./routes/queue");
+const queueRoutes        = require("./routes/queue");
+const reportsRoutes      = require("./routes/reports");
 
 app.use("/api/auth",          authRoutes);
 app.use("/api/appointments",  appointmentRoutes);
 app.use("/api/doctors",       doctorRoutes);
-app.use("/api/schedules",     slotRoutes);          // GET /api/schedules/:doctorId/slots
-app.use("/api/schedule",      scheduleRoutes);      // GET/POST /api/schedule/config, blackout
-app.use("/api/notifications", notificationRoutes);  // POST /api/notifications/broadcast
-app.use("/api/queue",         queueRoutes);         // GET /api/queue/today
+app.use("/api/schedules",     slotRoutes);
+app.use("/api/schedule",      scheduleRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/queue",         queueRoutes);
+app.use("/api/reports",       reportsRoutes);       // GET /api/reports/daily
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get("/api/health", (req, res) => {
