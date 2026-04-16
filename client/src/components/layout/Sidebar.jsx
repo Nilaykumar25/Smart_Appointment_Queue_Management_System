@@ -8,9 +8,9 @@ function Sidebar() {
   const navigate = useNavigate();
   const role = getRole();
 
-  function handleLogout() {
-    logout();
-    navigate('/login');
+  async function handleLogout() {
+    await logout();
+    navigate('/staff-login');
   }
 
   return (
@@ -23,6 +23,7 @@ function Sidebar() {
 
         {role === 'admin' && (
           <>
+            <NavLink to="/admin/appointments">🗓️ Appointments</NavLink>
             <NavLink to="/admin/schedule">📅 Schedule Config</NavLink>
             <NavLink to="/admin/reports">📊 Reports</NavLink>
           </>

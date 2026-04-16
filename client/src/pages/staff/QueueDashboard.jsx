@@ -1,23 +1,22 @@
 // Implements: REQ-7  — see SRS Section 4.3 (Queue Management and Status Tracking)
 // Implements: REQ-12 — see SRS Section 4.5 (Appointment Status Management)
 // Implements: REQ-13 — see SRS Section 4.5 (No-Show Trigger)
-// Real endpoint: PATCH /api/appointments/:id/status
-// Backend file: server/src/routes/appointments.js
+//
+// Queue Position Mapping:
+//   - queuePosition = patient's place in queue for the day
+//   - Position 1 = first patient to be attended
+//   - When a patient is Completed/No-Show, they leave the queue
+//   - Dashboard polls /queue/today every 30 seconds for real-time updates
+//
+// Status Transitions:
+//   Booked → Arrived → In-Consultation → Completed (leaves queue)
+//                                      → No-Show   (leaves queue)
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiCall } from '../../services/api';
 import { useQueue } from '../../context/QueueContext';
 import StatusBadge from '../../components/common/StatusBadge';
 import './QueueDashboard.css';
-
-// TODO: Remove mock data when GET /api/appointments/queue/today is implemented
-const MOCK_PATIENTS = [
-  { appointmentId: 'A001', patientName: 'Rahul Sharma',  queuePosition: 1, scheduledTime: '10:00 AM', status: 'Booked'          },
-  { appointmentId: 'A002', patientName: 'Priya Singh',   queuePosition: 2, scheduledTime: '10:15 AM', status: 'Arrived'         },
-  { appointmentId: 'A003', patientName: 'Amit Verma',    queuePosition: 3, scheduledTime: '10:30 AM', status: 'In-Consultation' },
-  { appointmentId: 'A004', patientName: 'Sneha Patel',   queuePosition: 4, scheduledTime: '10:45 AM', status: 'Completed'       },
-  { appointmentId: 'A005', patientName: 'Rohan Das',     queuePosition: 5, scheduledTime: '11:00 AM', status: 'No-Show'         },
-];
 
 function ActionButtons({ patient, updatingId, onAction }) {
   const { appointmentId, status } = patient;
@@ -60,30 +59,30 @@ function ActionButtons({ patient, updatingId, onAction }) {
 }
 
 function QueueDashboard() {
-  const { patients, updateStatus, resetPatients } = useQueue();
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState('');
-  const [updatingId, setUpdatingId] = useState(null);
+  const { patients, updateStatus, resetPatients, reorderPatients } = useQueue();
+  const [initialLoad, setInitialLoad]   = useState(true);
+  const [error, setError]               = useState('');
+  const [updatingId, setUpdatingId]     = useState(null);
+  const [reorderingId, setReorderingId] = useState(null);
+  const [reorderError, setReorderError] = useState('');
 
-  const fetchQueue = useCallback(async () => {
-    setLoading(true);
+  // REQ-7: Poll every 30 seconds for real-time queue position updates
+  const fetchQueue = useCallback(async (isInitial = false) => {
+    if (isInitial) setInitialLoad(true);
     setError('');
     try {
-      // TODO: Replace with real endpoint when GET /api/appointments/queue/today is implemented
-      const data = await apiCall('/appointments/queue/today');
+      const data = await apiCall('/queue/today');
       resetPatients(data);
-    } catch (err) {
-      console.error('Queue fetch failed, using mock data:', err);
-      // Fallback: context already holds MOCK_PATIENTS
+    } catch {
+      // context holds existing data — no flicker on background refresh failure
     } finally {
-      setLoading(false);
+      if (isInitial) setInitialLoad(false);
     }
   }, [resetPatients]);
 
-  // Initial load + 30-second auto-refresh
   useEffect(() => {
-    fetchQueue();
-    const interval = setInterval(fetchQueue, 30_000);
+    fetchQueue(true);
+    const interval = setInterval(() => fetchQueue(false), 30_000);
     return () => clearInterval(interval);
   }, [fetchQueue]);
 
@@ -95,7 +94,6 @@ function QueueDashboard() {
         method: 'PATCH',
         body: { status: newStatus },
       });
-      // Update local state on API success
       updateStatus(appointmentId, newStatus);
     } catch (err) {
       console.error('Status update error:', err);
@@ -106,25 +104,49 @@ function QueueDashboard() {
     }
   }
 
+  async function handleReorder(appointmentId, direction) {
+    setReorderingId(appointmentId + direction);
+    setReorderError('');
+
+    reorderPatients(appointmentId, direction);
+
+    try {
+      await apiCall('/queue/reorder', {
+        method: 'PATCH',
+        body: { appointmentId, direction },
+      });
+    } catch (err) {
+      console.error('Reorder error:', err);
+      setReorderError('Could not save new order. Refreshing...');
+      await fetchQueue(false);
+      setTimeout(() => setReorderError(''), 3000);
+    } finally {
+      setReorderingId(null);
+    }
+  }
+
+  const totalPatients = patients.length;
+
   return (
     <div>
       <div className="queue-header">
         <div>
           <h2>Today's Queue</h2>
-          <div className="patient-count">{patients.length} patients scheduled</div>
+          <div className="patient-count">{totalPatients} patient{totalPatients !== 1 ? 's' : ''} scheduled</div>
         </div>
         <button
           className="btn btn-outline-secondary btn-sm"
-          onClick={fetchQueue}
-          disabled={loading}
+          onClick={() => fetchQueue(true)}
+          disabled={initialLoad}
         >
           🔄 Refresh
         </button>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error        && <div className="alert alert-danger">{error}</div>}
+      {reorderError && <div className="alert alert-warning">{reorderError}</div>}
 
-      {loading ? (
+      {initialLoad ? (
         <div className="d-flex justify-content-center py-5">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Loading...</span>
@@ -135,36 +157,68 @@ function QueueDashboard() {
           <table className="table table-bordered table-hover">
             <thead className="table-light">
               <tr>
-                <th>Queue #</th>
+                <th style={{ width: '90px' }}>Queue #</th>
                 <th>Patient Name</th>
                 <th>Scheduled At</th>
                 <th>Status</th>
                 <th>Actions</th>
+                <th style={{ width: '90px' }}>Reorder</th>
               </tr>
             </thead>
             <tbody>
               {patients.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-muted py-4">
+                  <td colSpan={6} className="text-center text-muted py-4">
                     No patients in queue today.
                   </td>
                 </tr>
               ) : (
-                patients.map((patient) => (
-                  <tr key={patient.appointmentId}>
-                    <td><strong>{patient.queuePosition}</strong></td>
-                    <td>{patient.patientName}</td>
-                    <td>{patient.scheduledTime}</td>
-                    <td><StatusBadge status={patient.status} /></td>
-                    <td>
-                      <ActionButtons
-                        patient={patient}
-                        updatingId={updatingId}
-                        onAction={handleAction}
-                      />
-                    </td>
-                  </tr>
-                ))
+                patients.map((patient, idx) => {
+                  const isFirst = idx === 0;
+                  const isLast  = idx === patients.length - 1;
+                  const isReordering = reorderingId === patient.appointmentId + 'up'
+                                    || reorderingId === patient.appointmentId + 'down';
+
+                  return (
+                    <tr key={patient.appointmentId}>
+                      <td><strong>{patient.queuePosition ?? idx + 1}</strong></td>
+                      <td>{patient.patientName}</td>
+                      <td>{patient.scheduledTime}</td>
+                      <td><StatusBadge status={patient.status} /></td>
+                      <td>
+                        <ActionButtons
+                          patient={patient}
+                          updatingId={updatingId}
+                          onAction={handleAction}
+                        />
+                      </td>
+                      <td>
+                        <div className="reorder-cell">
+                          <button
+                            className="btn btn-sm btn-outline-secondary reorder-btn"
+                            title="Move up"
+                            disabled={isFirst || isReordering || !!updatingId}
+                            onClick={() => handleReorder(patient.appointmentId, 'up')}
+                          >
+                            {reorderingId === patient.appointmentId + 'up'
+                              ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                              : '↑'}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-secondary reorder-btn"
+                            title="Move down"
+                            disabled={isLast || isReordering || !!updatingId}
+                            onClick={() => handleReorder(patient.appointmentId, 'down')}
+                          >
+                            {reorderingId === patient.appointmentId + 'down'
+                              ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                              : '↓'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

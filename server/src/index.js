@@ -29,13 +29,17 @@ const doctorRoutes       = require("./routes/doctors");
 const slotRoutes         = require("./routes/slots");
 const scheduleRoutes     = require("./routes/scheduleRoutes");
 const notificationRoutes = require("./routes/notifications");
+const queueRoutes        = require("./routes/queue");
+const reportsRoutes      = require("./routes/reports");
 
 app.use("/api/auth",          authRoutes);
 app.use("/api/appointments",  appointmentRoutes);
 app.use("/api/doctors",       doctorRoutes);
-app.use("/api/schedules",     slotRoutes);          // GET /api/schedules/:doctorId/slots
-app.use("/api/schedule",      scheduleRoutes);      // GET/POST /api/schedule/config, blackout
-app.use("/api/notifications", notificationRoutes);  // POST /api/notifications/broadcast
+app.use("/api/schedules",     slotRoutes);
+app.use("/api/schedule",      scheduleRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/queue",         queueRoutes);
+app.use("/api/reports",       reportsRoutes);       // GET /api/reports/daily
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get("/api/health", (req, res) => {

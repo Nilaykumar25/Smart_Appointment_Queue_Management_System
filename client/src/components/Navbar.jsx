@@ -46,7 +46,7 @@ const Navbar = () => {
 
   /* Helper – returns className for NavLink based on active state */
   const navLinkClass = ({ isActive }) =>
-    isActive ? 'nav-link nav-link--active' : 'nav-link';
+    `nav-link${isActive ? ' nav-link--active' : ''}`;
 
   return (
     <nav className={`navbar${scrolled ? ' navbar--scrolled' : ''}`}>
@@ -69,16 +69,32 @@ const Navbar = () => {
 
       {/* ===== CENTER NAVIGATION LINKS ===== */}
       <div className={`nav-menu${mobileMenuOpen ? ' active' : ''}`}>
-        <NavLink to="/" className={navLinkClass} end onClick={closeMobile}>
-          Home
-        </NavLink>
-        <NavLink to="/about" className={navLinkClass} onClick={closeMobile}>
+        {!user && (
+          <NavLink
+            to="/"
+            className={({ isActive }) => `nav-link${isActive ? ' nav-link--active' : ''}`}
+            end
+            onClick={closeMobile}
+          >
+            Home
+          </NavLink>
+        )}
+        {user && (
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) => `nav-link${isActive ? ' nav-link--active' : ''}`}
+            onClick={closeMobile}
+          >
+            Home
+          </NavLink>
+        )}
+        <NavLink to="/about" className={({ isActive }) => `nav-link${isActive ? ' nav-link--active' : ''}`} onClick={closeMobile}>
           About Us
         </NavLink>
-        <NavLink to="/contact" className={navLinkClass} onClick={closeMobile}>
+        <NavLink to="/contact" className={({ isActive }) => `nav-link${isActive ? ' nav-link--active' : ''}`} onClick={closeMobile}>
           Contact
         </NavLink>
-        <NavLink to="/help" className={navLinkClass} onClick={closeMobile}>
+        <NavLink to="/help" className={({ isActive }) => `nav-link${isActive ? ' nav-link--active' : ''}`} onClick={closeMobile}>
           Help
         </NavLink>
       </div>

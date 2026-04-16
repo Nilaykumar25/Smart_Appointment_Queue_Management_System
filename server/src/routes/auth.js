@@ -29,7 +29,6 @@ router.post("/register", async (req, res) => {
     if (password.length < 8)
       return res.status(400).json({ error: "Password must be at least 8 characters" });
 
-    // Check duplicate email
     const existing = await db.query("SELECT user_id FROM users WHERE email = $1", [email]);
     if (existing.rows.length > 0)
       return res.status(409).json({ error: "Email already registered" });
@@ -44,7 +43,6 @@ router.post("/register", async (req, res) => {
 
     const user = rows[0];
 
-    // Issue tokens immediately on register so user is logged in
     const accessToken = jwt.sign(
       { userId: user.user_id, role: user.role, name: user.name },
       process.env.JWT_SECRET,

@@ -9,21 +9,24 @@ import { useQueue } from '../../context/QueueContext';
 import Toast from '../../components/common/Toast';
 import './ReportsPage.css';
 
-// TODO: Remove MOCK_REPORT when backend /reports/daily is implemented
-const MOCK_REPORT = {
-  totalPatientsSeen:      0,
-  totalNoShows:           0,
-  totalCancellations:     0,
-  averageWaitTimeMinutes: 18,
-};
+// Get today's date in local timezone (not UTC) to avoid IST offset issues
+function getLocalToday() {
+  const d = new Date();
+  const year  = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day   = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
-const today = new Date().toISOString().split('T')[0];
+const today = getLocalToday();
 
 const STATS = [
-  { key: 'totalPatientsSeen',      icon: '👤', label: 'Patients Seen',  colorClass: 'stat-green',  borderColor: '#38a169' },
-  { key: 'totalNoShows',           icon: '❌', label: 'No-Shows',       colorClass: 'stat-red',    borderColor: '#e53e3e' },
-  { key: 'totalCancellations',     icon: '🚫', label: 'Cancellations',  colorClass: 'stat-orange', borderColor: '#fd7e14' },
-  { key: 'averageWaitTimeMinutes', icon: '⏱️', label: 'Avg. Wait Time', colorClass: 'stat-blue',   borderColor: '#0d6efd', suffix: ' min' },
+  { key: 'totalPatientsSeen',      icon: '✅', label: 'Completed',      colorClass: 'stat-green',  borderColor: '#059669' },
+  { key: 'totalNoShows',           icon: '❌', label: 'No-Shows',       colorClass: 'stat-red',    borderColor: '#dc2626' },
+  { key: 'totalBooked',            icon: '📋', label: 'Booked',         colorClass: 'stat-blue',   borderColor: '#2563EB' },
+  { key: 'totalArrived',           icon: '🏥', label: 'Arrived',        colorClass: 'stat-orange', borderColor: '#d97706' },
+  { key: 'totalAppointments',      icon: '📅', label: 'Total Appts',    colorClass: 'stat-blue',   borderColor: '#475569' },
+  { key: 'averageWaitTimeMinutes', icon: '⏱️', label: 'Avg. Wait Time', colorClass: 'stat-blue',   borderColor: '#2563EB', suffix: ' min' },
 ];
 
 function ReportsPage() {
@@ -47,10 +50,9 @@ function ReportsPage() {
         const data = await apiCall('/reports/daily?date=' + date);
         setReport(data);
       } catch (err) {
-        console.error('Report fetch failed, using live queue data:', err);
-        // Backend endpoint not yet built — fall back to live context stats
-        setFetchError('Report endpoint not yet available. Showing live queue data.');
-        setReport({ ...MOCK_REPORT, date });
+        console.error('Report fetch failed:', err);
+        setFetchError('No data found for this date.');
+        setReport(null);
       } finally {
         setLoading(false);
       }
@@ -66,31 +68,38 @@ function ReportsPage() {
     if (ispdf) setPdfLoading(true); else setCsvLoading(true);
 
     try {
-      const token    = localStorage.getItem('saqms_token');
-      const response = await fetch(
-        `http://localhost:5000/api/reports/daily?date=${date}&format=${format}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const token = localStorage.getItem('saqms_token');
+      const url   = `http://localhost:5000/api/reports/daily?date=${date}&format=${format}`;
 
-      if (response.ok) {
-        const blob     = await response.blob();
-        const url      = URL.createObjectURL(blob);
-        const a        = document.createElement('a');
-        a.href         = url;
-        a.download     = `SAQMS-Report-${date}.${format}`;
+      if (ispdf) {
+        const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' });
+        if (!response.ok) throw new Error('not ok');
+        const html = await response.text();
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } else {
+        const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' });
+        if (!response.ok) throw new Error('not ok');
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `SAQMS-Report-${date}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } else {
-        throw new Error('not ok');
+        URL.revokeObjectURL(blobUrl);
       }
-    } catch {
-      // TODO: Remove mock message when backend is ready
-      const msg = ispdf
-        ? '📄 PDF download will work when backend is connected.'
-        : '📊 CSV download will work when backend is connected.';
-      setToast({ message: msg, type: 'info' });
+    } catch (err) {
+      console.error('Download error:', err);
+      setToast({
+        message: ispdf
+          ? '❌ Could not generate PDF. Make sure the server is running.'
+          : '❌ Could not generate CSV. Make sure the server is running.',
+        type: 'error',
+      });
     } finally {
       if (ispdf) setPdfLoading(false); else setCsvLoading(false);
     }

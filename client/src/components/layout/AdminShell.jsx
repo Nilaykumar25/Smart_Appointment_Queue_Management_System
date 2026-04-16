@@ -6,10 +6,11 @@ import TopBar from './TopBar';
 import './AdminShell.css';
 
 const PAGE_TITLES = {
-  '/staff/queue':     'Queue Dashboard',
-  '/staff/broadcast': 'Broadcast Alert',
-  '/admin/schedule':  'Schedule Configuration',
-  '/admin/reports':   'Reports & Export',
+  '/staff/queue':          'Queue Dashboard',
+  '/staff/broadcast':      'Broadcast Alert',
+  '/admin/schedule':       'Schedule Configuration',
+  '/admin/reports':        'Reports & Export',
+  '/admin/appointments':   'All Appointments',
 };
 
 function AdminShell() {

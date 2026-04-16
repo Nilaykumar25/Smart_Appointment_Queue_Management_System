@@ -26,6 +26,7 @@ A web-based clinic appointment and queue management system built for DSC-11 Soft
 ## ⚡ Quick Start
 
 ### For Users (5 minutes)
+
 ```
 1. Navigate to https://saqms.com
 2. Click "Register" → Create your account
@@ -36,6 +37,7 @@ A web-based clinic appointment and queue management system built for DSC-11 Soft
 ```
 
 ### For Developers (10 minutes)
+
 ```bash
 # Clone and setup
 git clone https://github.com/team/saqms.git
@@ -63,6 +65,7 @@ npm run dev
 ### **For Patients**
 
 #### Creating an Account
+
 1. Click **"Register"** on homepage
 2. Enter email, full name, and password
 3. Click **"Sign Up"**
@@ -72,23 +75,27 @@ npm run dev
 #### Booking an Appointment (5-Step Process)
 
 **STEP 1: Browse Doctors**
+
 - Navigate to "Browse Doctors"
 - Filter by: Specialty, Rating, Experience, Fee
 - View doctor profiles with credentials
 
 **STEP 2: Select Date & Time**
+
 - Choose appointment date from calendar
 - Pick available time slot
 - Use search to find specific times
 - View appointment details (fee, duration)
 
 **STEP 3: Review Appointment**
+
 - Confirm doctor name, specialty, experience
 - Double-check selected date and time
 - Review consultation fee
 - Click "Confirm Booking"
 
 **STEP 4: Provide Medical Information**
+
 - **Reason for Visit** (required) - Describe symptoms
 - **Medical History** (optional) - Previous conditions
 - **Allergies** (optional) - Drug/food allergies
@@ -97,6 +104,7 @@ npm run dev
 - Click "Confirm Booking"
 
 **STEP 5: Success!**
+
 - See confirmation message ✅
 - Auto-redirected to Dashboard
 - View appointment in your list
@@ -104,26 +112,31 @@ npm run dev
 #### Managing Your Appointments
 
 **View Appointments**
+
 - Go to Dashboard → "Upcoming Appointments"
 - See all details: doctor, date, time, status
 - Track confirmation status
 
 **Cancel Appointments**
+
 - Click "Cancel Appointment" button next to booking
 - Confirm cancellation
 - Check cancellation policy for refunds
 
 **Reschedule**
+
 - Cancel current appointment
 - Book a new appointment
 
 #### Dashboard Features
+
 - **Statistics:** Total appointments, completed visits, queue position
 - **Medical Records:** View past consultation summaries
 - **Queue Tracking:** Real-time waiting queue position
 - **Notifications:** Appointment reminders (24 hours before)
 
 #### Account Management
+
 - **Profile:** Update name, contact, address
 - **Password:** Change password anytime
 - **Settings:** Notification preferences, privacy settings
@@ -134,6 +147,7 @@ npm run dev
 ## 🎯 Features
 
 ### **Core Features**
+
 ✅ User Registration & Authentication  
 ✅ JWT-based secure login  
 ✅ Doctor Directory with advanced search  
@@ -144,29 +158,32 @@ npm run dev
 ✅ Appointment management (view, cancel, reschedule)  
 ✅ Queue position tracking  
 ✅ Email & SMS notifications  
-✅ Appointment reminders  
+✅ Appointment reminders
 
 ### **Security Features**
+
 🔒 Password encryption with bcrypt  
 🔒 JWT token authentication  
 🔒 Protected routes (authorization required)  
 🔒 HIPAA-compliant data storage  
 🔒 SSL/TLS encryption in transit  
-🔒 Secure password reset via email  
+🔒 Secure password reset via email
 
 ### **Performance Features**
+
 ⚡ Redis caching for doctor listings  
 ⚡ Real-time slot availability updates  
 ⚡ Optimized database queries  
 ⚡ CDN for static assets  
-⚡ Progressive Web App (PWA) compatible  
+⚡ Progressive Web App (PWA) compatible
 
 ### **Accessibility Features**
+
 ♿ Mobile-responsive design  
 ♿ WCAG 2.1 AA compliant  
 ♿ Keyboard navigation support  
 ♿ Dark mode support  
-♿ Multiple language support (coming soon)  
+♿ Multiple language support (coming soon)
 
 ---
 
@@ -233,6 +250,7 @@ saqms/
 ## 🚀 Setup Instructions
 
 ### Prerequisites
+
 - **Node.js** v18 or higher
 - **npm** or **yarn**
 - **PostgreSQL** 14 or higher
@@ -242,29 +260,34 @@ saqms/
 ### Backend Setup
 
 1. **Clone repository**
+
    ```bash
    git clone https://github.com/team/saqms.git
    cd saqms/server
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Setup PostgreSQL database**
+
    ```bash
    createdb saqms_development
    # Or via pgAdmin/DBeaver
    ```
 
 4. **Run database migrations**
+
    ```bash
    npm run migrate
    # Creates all tables (users, doctors, appointments, etc.)
    ```
 
 5. **Configure environment**
+
    ```bash
    cp .env.example .env
    # Edit .env with your configurations
@@ -279,16 +302,19 @@ saqms/
 ### Frontend Setup
 
 1. **Navigate to client**
+
    ```bash
    cd ../client
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Start development server**
+
    ```bash
    npm run dev
    # Frontend runs on http://localhost:5173
@@ -305,6 +331,7 @@ saqms/
 ## 🔐 Environment Configuration
 
 ### Backend (.env)
+
 ```env
 # Server
 NODE_ENV=development
@@ -340,6 +367,7 @@ REDIS_URL=redis://localhost:6379
 ```
 
 ### Frontend (.env)
+
 ```env
 VITE_API_URL=http://localhost:5000
 VITE_APP_NAME=SAQMS
@@ -353,6 +381,7 @@ VITE_APP_VERSION=1.0.0
 ### Running Development Servers
 
 **Terminal 1 (Backend)**
+
 ```bash
 cd server
 npm run dev
@@ -360,6 +389,7 @@ npm run dev
 ```
 
 **Terminal 2 (Frontend)**
+
 ```bash
 cd client
 npm run dev
@@ -369,12 +399,14 @@ npm run dev
 ### Code Structure Best Practices
 
 **Frontend Components**
+
 - Use functional components with hooks
 - Keep components small and focused
 - Use React Context for state management
 - Place CSS in component-specific files
 
 **Backend API**
+
 - RESTful endpoint design
 - Consistent error responses
 - Input validation on all routes
@@ -396,12 +428,14 @@ npm run test:watch
 ### Debugging
 
 **Backend Debug Logs**
+
 ```
 NODE_ENV=development npm start
 # Check logs in console
 ```
 
 **Frontend React DevTools**
+
 - Install React DevTools browser extension
 - Inspect component props, state
 - Profiler tab for performance
@@ -439,6 +473,7 @@ git push heroku main
 ```
 
 ### Environment Variables for Production
+
 - Use secrets management (Vercel Secrets, Heroku Config Vars)
 - Never commit .env files
 - Rotate secrets regularly
@@ -449,6 +484,7 @@ git push heroku main
 ## 🔌 API Endpoints
 
 ### Authentication
+
 ```
 POST   /api/auth/register      - Register new user
 POST   /api/auth/login         - User login
@@ -458,6 +494,7 @@ POST   /api/auth/forgot-password - Password reset request
 ```
 
 ### Doctors
+
 ```
 GET    /api/doctors            - List all doctors
 GET    /api/doctors/:id        - Get doctor details
@@ -466,6 +503,7 @@ GET    /api/doctors/:id/availability - Get available slots
 ```
 
 ### Appointments
+
 ```
 POST   /api/appointments       - Create appointment
 GET    /api/appointments       - Get user's appointments
@@ -475,12 +513,14 @@ DELETE /api/appointments/:id   - Cancel appointment
 ```
 
 ### Queue
+
 ```
 GET    /api/queue             - Get queue status
 GET    /api/queue/:clinic_id  - Get clinic queue position
 ```
 
 ### Notifications
+
 ```
 GET    /api/notifications     - Get user notifications
 PUT    /api/notifications/:id - Mark as read
@@ -495,6 +535,7 @@ For complete API documentation, see `/docs/API.md`
 ### Frontend Issues
 
 **Issue: Port 5173 already in use**
+
 ```bash
 # Kill process on port 5173
 lsof -i :5173
@@ -504,12 +545,14 @@ npm run dev -- --port 5174
 ```
 
 **Issue: npm modules not installing**
+
 ```bash
 rm -rf node_modules package-lock.json
 npm install
 ```
 
 **Issue: React not updating**
+
 ```bash
 # Clear cache
 rm -rf .vite
@@ -519,6 +562,7 @@ npm run dev
 ### Backend Issues
 
 **Issue: Database connection failed**
+
 ```
 ✓ Verify PostgreSQL is running
 ✓ Check DB_HOST, DB_PORT, DB_USER in .env
@@ -527,6 +571,7 @@ npm run dev
 ```
 
 **Issue: Port 5000 already in use**
+
 ```bash
 # Find and kill process
 lsof -i :5000
@@ -535,6 +580,7 @@ kill -9 <PID>
 ```
 
 **Issue: Migrations failed**
+
 ```bash
 # Check migration status
 npm run migrate:status
@@ -545,6 +591,7 @@ npm run migrate:up
 ```
 
 **Issue: JWT token invalid**
+
 ```
 ✓ Check JWT_SECRET is set in .env
 ✓ Verify token not expired (check expiry time)
@@ -554,6 +601,7 @@ npm run migrate:up
 ### Database Issues
 
 **Issue: Cannot connect to database**
+
 ```bash
 # Check if PostgreSQL is running
 sudo service postgresql status
@@ -569,6 +617,7 @@ npm run migrate
 ```
 
 **Issue: Table doesn't exist**
+
 ```bash
 # Check migration status
 psql -U postgres -d saqms_development -c "\dt"
@@ -643,21 +692,22 @@ A: Cancel current appointment and book a new one. Cancellation policy applies.
 - **Live Chat:** Available 9 AM - 9 PM (Mon-Fri)
 
 ---
+
 A web-based clinic management system that allows patients to book appointments online and enables clinic staff to manage queues efficiently in real time.
 
 Built by **Team SNARS** as part of DSC-11 Software Engineering coursework.
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | React 18, Vite, CSS3 |
-| **Backend** | Node.js, Express.js |
-| **Database** | PostgreSQL 14 |
-| **Cache** | Redis |
-| **Authentication** | JWT + bcrypt |
-| **Email** | SendGrid API |
-| **SMS** | Twilio API |
-| **Deployment** | Vercel (Frontend), Heroku (Backend) |
-| **Version Control** | Git/GitHub |
+| Layer               | Technology                          |
+| ------------------- | ----------------------------------- |
+| **Frontend**        | React 18, Vite, CSS3                |
+| **Backend**         | Node.js, Express.js                 |
+| **Database**        | PostgreSQL 14                       |
+| **Cache**           | Redis                               |
+| **Authentication**  | JWT + bcrypt                        |
+| **Email**           | SendGrid API                        |
+| **SMS**             | Twilio API                          |
+| **Deployment**      | Vercel (Frontend), Heroku (Backend) |
+| **Version Control** | Git/GitHub                          |
 
 ---
 
@@ -673,6 +723,7 @@ Built by **Team SNARS** as part of DSC-11 Software Engineering coursework.
 ## 🤝 Contributing
 
 Contributions are welcome! Please:
+
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit changes (`git commit -m 'Add amazing feature'`)
@@ -722,16 +773,16 @@ This project is licensed under the MIT License - see `LICENSE` file for details.
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 19, Vite, Bootstrap 5, Plain CSS |
-| Backend | Node.js, Express |
-| Database | PostgreSQL / MySQL |
-| Auth | JWT (JSON Web Tokens) + bcrypt |
-| Notifications | SendGrid (email), Twilio (SMS) |
-| PDF Export | pdfkit (server-side) |
+| Layer         | Technology                              |
+| ------------- | --------------------------------------- |
+| Frontend      | React 19, Vite, Bootstrap 5, Plain CSS  |
+| Backend       | Node.js, Express                        |
+| Database      | PostgreSQL / MySQL                      |
+| Auth          | JWT (JSON Web Tokens) + bcrypt          |
+| Notifications | SendGrid (email), Twilio (SMS)          |
+| PDF Export    | pdfkit (server-side)                    |
 | Session Store | Redis (token blacklist + rate limiting) |
-| Deployment | AWS / GCP / Azure |
+| Deployment    | AWS / GCP / Azure                       |
 
 ---
 
@@ -793,6 +844,7 @@ Redis is required for token blacklisting and rate limiting.
 - **Docker**: `docker run -d -p 6379:6379 --name redis redis:alpine`
 
 Verify Redis is running:
+
 ```bash
 redis-cli ping
 # Should return: PONG
@@ -818,6 +870,7 @@ node create-admin.js
 ```
 
 This creates an admin account with credentials:
+
 - Email: `admin@demo.com`
 - Password: `admin123`
 
@@ -883,12 +936,12 @@ REACT_APP_API_BASE_URL=http://localhost:5000/api
 
 > Available after running `npm run seed` and `node create-admin.js`. For development and testing only — not for production.
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@demo.com | admin123 |
-| Staff | aryan@demo.com | seeded |
-| Staff | priya@demo.com | seeded |
-| Staff | rohan@demo.com | seeded |
+| Role    | Email             | Password    |
+| ------- | ----------------- | ----------- |
+| Admin   | admin@demo.com    | admin123    |
+| Staff   | aryan@demo.com    | seeded      |
+| Staff   | priya@demo.com    | seeded      |
+| Staff   | rohan@demo.com    | seeded      |
 | Patient | patient1@demo.com | password123 |
 | Patient | patient2@demo.com | password123 |
 
@@ -900,21 +953,21 @@ REACT_APP_API_BASE_URL=http://localhost:5000/api
 
 ### Backend (run from `/server`)
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start backend in development mode |
-| `npm start` | Start backend in production mode |
-| `npm run migrate` | Run database migrations |
-| `npm run seed` | Seed test data |
-| `npm test` | Run backend tests |
+| Command           | Description                       |
+| ----------------- | --------------------------------- |
+| `npm run dev`     | Start backend in development mode |
+| `npm start`       | Start backend in production mode  |
+| `npm run migrate` | Run database migrations           |
+| `npm run seed`    | Seed test data                    |
+| `npm test`        | Run backend tests                 |
 
 ### Frontend (run from `/client`)
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start frontend in development mode |
-| `npm run build` | Create production build |
-| `npm run preview` | Preview production build locally |
+| Command           | Description                        |
+| ----------------- | ---------------------------------- |
+| `npm run dev`     | Start frontend in development mode |
+| `npm run build`   | Create production build            |
+| `npm run preview` | Preview production build locally   |
 
 ---
 
@@ -955,45 +1008,45 @@ Smart_Appointment_Queue_Management_System/
 
 ## 🔌 API Overview
 
-| Endpoint | Auth Required | Access |
-|---|---|---|
-| `POST /api/auth/register` | No | All |
-| `POST /api/auth/login` | No | All |
-| `POST /api/auth/logout` | Yes | All |
-| `GET /api/queue/today` | Yes | Staff, Admin |
-| `PATCH /api/appointments/:id/status` | Yes | Staff, Admin |
-| `POST /api/notifications/broadcast` | Yes | Staff, Admin |
-| `GET /api/schedule/config` | Yes | Admin |
-| `POST /api/schedule/config` | Yes | Admin |
-| `POST /api/schedule/blackout` | Yes | Admin |
-| `DELETE /api/schedule/blackout/:date` | Yes | Admin |
-| `GET /api/reports/daily` | Yes | Admin |
+| Endpoint                              | Auth Required | Access       |
+| ------------------------------------- | ------------- | ------------ |
+| `POST /api/auth/register`             | No            | All          |
+| `POST /api/auth/login`                | No            | All          |
+| `POST /api/auth/logout`               | Yes           | All          |
+| `GET /api/queue/today`                | Yes           | Staff, Admin |
+| `PATCH /api/appointments/:id/status`  | Yes           | Staff, Admin |
+| `POST /api/notifications/broadcast`   | Yes           | Staff, Admin |
+| `GET /api/schedule/config`            | Yes           | Admin        |
+| `POST /api/schedule/config`           | Yes           | Admin        |
+| `POST /api/schedule/blackout`         | Yes           | Admin        |
+| `DELETE /api/schedule/blackout/:date` | Yes           | Admin        |
+| `GET /api/reports/daily`              | Yes           | Admin        |
 
 ---
 
 ## ✅ SRS Requirements Coverage
 
-| Requirement | Description | Status |
-|---|---|---|
-| REQ-1 | Role-based access control | ✅ Complete |
-| REQ-2 | Data encryption in transit | ✅ Complete |
-| REQ-3 | Brute-force protection | ✅ Complete |
-| REQ-4 | Filter doctors by specialty | ✅ Complete |
-| REQ-5 | Prevent double-booking | ✅ Complete |
-| REQ-6 | Cancel/reschedule window | ✅ Complete |
-| REQ-7 | Real-time queue updates | ✅ Complete |
-| REQ-8 | Wait time calculation | ✅ Complete |
-| REQ-9 | Define daily schedule | ✅ Complete |
-| REQ-10 | Blackout dates | ✅ Complete |
-| REQ-11 | Open/close slots | ✅ Complete |
-| REQ-12 | One-click status update | ✅ Complete |
-| REQ-13 | Auto no-show flag | ✅ Complete |
-| REQ-14 | Dashboard response under 2 seconds | ✅ Complete |
-| REQ-15 | Local schedule cache | ✅ Complete |
-| REQ-16 | Booking confirmation notification | ✅ Complete |
-| REQ-17 | Staff broadcast alert | ✅ Complete |
-| REQ-18 | Immutable audit log | ✅ Complete |
-| REQ-19 | Export PDF and CSV | ✅ Complete |
+| Requirement | Description                        | Status      |
+| ----------- | ---------------------------------- | ----------- |
+| REQ-1       | Role-based access control          | ✅ Complete |
+| REQ-2       | Data encryption in transit         | ✅ Complete |
+| REQ-3       | Brute-force protection             | ✅ Complete |
+| REQ-4       | Filter doctors by specialty        | ✅ Complete |
+| REQ-5       | Prevent double-booking             | ✅ Complete |
+| REQ-6       | Cancel/reschedule window           | ✅ Complete |
+| REQ-7       | Real-time queue updates            | ✅ Complete |
+| REQ-8       | Wait time calculation              | ✅ Complete |
+| REQ-9       | Define daily schedule              | ✅ Complete |
+| REQ-10      | Blackout dates                     | ✅ Complete |
+| REQ-11      | Open/close slots                   | ✅ Complete |
+| REQ-12      | One-click status update            | ✅ Complete |
+| REQ-13      | Auto no-show flag                  | ✅ Complete |
+| REQ-14      | Dashboard response under 2 seconds | ✅ Complete |
+| REQ-15      | Local schedule cache               | ✅ Complete |
+| REQ-16      | Booking confirmation notification  | ✅ Complete |
+| REQ-17      | Staff broadcast alert              | ✅ Complete |
+| REQ-18      | Immutable audit log                | ✅ Complete |
+| REQ-19      | Export PDF and CSV                 | ✅ Complete |
 
 ---
 
@@ -1015,11 +1068,11 @@ Smart_Appointment_Queue_Management_System/
 
 ### Branch naming
 
-| Pattern | Purpose |
-|---|---|
-| `feat/description` | New feature |
-| `fix/description` | Bug fix |
-| `docs/description` | Documentation only |
+| Pattern              | Purpose               |
+| -------------------- | --------------------- |
+| `feat/description`   | New feature           |
+| `fix/description`    | Bug fix               |
+| `docs/description`   | Documentation only    |
 | `hotfix/description` | Urgent production fix |
 
 ### Commit message format

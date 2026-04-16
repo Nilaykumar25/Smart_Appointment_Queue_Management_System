@@ -1,34 +1,48 @@
 .broadcast-page {
-  max-width: 600px;
+  max-width: 640px;
   margin: 0 auto;
 }
 
 .broadcast-page h2 {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #2d3748;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0F172A;
   margin-bottom: 6px;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.025em;
 }
 
 .broadcast-page .subtitle {
-  color: #718096;
-  font-size: 0.9rem;
+  color: #475569;
+  font-size: 0.95rem;
   margin-bottom: 24px;
+  font-weight: 500;
+}
+
+/* Card matches patient portal card style */
+.broadcast-page .card {
+  border: 2px solid #E2E8F0;
+  border-radius: 1.2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border-top: 4px solid #2563EB;
 }
 
 .char-counter {
   font-size: 0.8rem;
-  color: #718096;
+  color: #94A3B8;
   text-align: right;
   margin-top: 4px;
+  font-weight: 500;
 }
 
 .char-counter.warning {
-  color: #e53e3e;
+  color: #dc2626;
+  font-weight: 700;
 }
 
 .field-error {
-  color: #e53e3e;
+  color: #dc2626;
   font-size: 0.8rem;
   margin-top: 4px;
+  font-weight: 600;
 }

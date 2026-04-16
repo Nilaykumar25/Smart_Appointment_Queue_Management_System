@@ -101,18 +101,39 @@
 /* Title and close button at top of modal */
 
 .modal-header {
-  /* Layout */
   display: flex;
   align-items: center;
   justify-content: space-between;
-  
-  /* Styling */
   padding: 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1E3A8A;
   color: white;
-  
-  /* Prevent text selection */
   user-select: none;
+}
+
+.btn-primary {
+  background-color: #2563EB;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #1D4ED8;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+}
+
+.action-btn.reschedule-btn {
+  color: #2563EB;
+}
+
+.action-btn.reschedule-btn:hover:not(:disabled) {
+  background-color: #EFF6FF;
+  border-color: #2563EB;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.15);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
 }
 
 .modal-header h2 {
