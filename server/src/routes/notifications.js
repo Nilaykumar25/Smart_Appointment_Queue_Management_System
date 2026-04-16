@@ -54,11 +54,12 @@ router.post("/broadcast", requireRole(["admin", "staff"]), async (req, res) => {
 
     } else if (target === "all_today") {
       // All patients with an appointment today (any status except cancelled)
+      // Use IST timezone to match stored UTC timestamps
       queryText = `
         SELECT DISTINCT a.patient_id
         FROM appointments a
         JOIN schedules s ON s.schedule_id = a.schedule_id
-        WHERE DATE(s.date) = CURRENT_DATE
+        WHERE TO_CHAR(s.date AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM-DD') = TO_CHAR((NOW() AT TIME ZONE 'Asia/Kolkata'), 'YYYY-MM-DD')
           AND a.status NOT IN ('No-Show', 'Completed')`;
 
     } else {
