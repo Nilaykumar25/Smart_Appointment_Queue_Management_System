@@ -1,23 +1,29 @@
 .schedule-page h2 {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #2d3748;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0F172A;
   margin-bottom: 24px;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.025em;
 }
 
-.card {
+/* Override Bootstrap card to match patient portal */
+.schedule-page .card {
   margin-bottom: 24px;
-  border: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  border: 2px solid #E2E8F0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border-radius: 1.2rem !important;
+  overflow: hidden;
 }
 
-.card-header {
-  background: #f8fafc;
-  font-weight: 600;
-  color: #2d3748;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 16px 20px;
+.schedule-page .card-header {
+  background: #F8FAFC;
+  font-weight: 700;
+  color: #0F172A;
+  border-bottom: 2px solid #E2E8F0;
+  padding: 16px 24px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
 }
 
 .working-days {
@@ -27,25 +33,29 @@
 }
 
 .blackout-item-date {
-  font-weight: 500;
-  color: #2d3748;
+  font-weight: 700;
+  color: #0F172A;
+  font-size: 0.95rem;
 }
 
 .blackout-item-reason {
   font-size: 0.85rem;
-  color: #718096;
+  color: #475569;
+  font-weight: 500;
 }
 
 .field-error {
-  color: #e53e3e;
+  color: #dc2626;
   font-size: 0.8rem;
   margin-top: 4px;
+  font-weight: 600;
 }
 
 .success-msg {
-  color: #38a169;
+  color: #059669;
   font-size: 0.875rem;
   margin-top: 8px;
+  font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════════════ */

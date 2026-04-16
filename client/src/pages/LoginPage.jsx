@@ -1,7 +1,7 @@
 // Implements: REQ-1 — see SRS Section 4.1 (User Registration and Authentication)
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { login, isAuthenticated, getRole } from '../services/auth';
 import './LoginPage.css';
 
@@ -152,6 +152,13 @@ function LoginPage() {
             )}
           </button>
         </form>
+
+        <div className="staff-login-link">
+          <p>Are you a patient?</p>
+          <Link to="/login" className="staff-login-btn">
+            👤 Patient Login
+          </Link>
+        </div>
 
       </div>
     </div>

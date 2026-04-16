@@ -1,14 +1,17 @@
 .reports-page h2 {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #2d3748;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0F172A;
   margin-bottom: 6px;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.025em;
 }
 
 .reports-page .subtitle {
-  color: #718096;
-  font-size: 0.9rem;
+  color: #475569;
+  font-size: 0.95rem;
   margin-bottom: 24px;
+  font-weight: 500;
 }
 
 .date-export-row {
@@ -18,38 +21,52 @@
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 24px;
-  padding: 16px 20px;
+  padding: 18px 24px;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 1.2rem;
+  border: 2px solid #E2E8F0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
 }
 
+/* Stat cards match patient portal stat-card style */
 .stat-card {
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  border: 2px solid #E2E8F0;
+  border-radius: 1.2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  padding: 24px 20px;
   text-align: center;
   height: 100%;
+  background: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card:hover {
+  box-shadow: 0 12px 40px rgba(37, 99, 235, 0.12);
+  transform: translateY(-6px);
+  border-color: #2563EB;
 }
 
 .stat-number {
   font-size: 2.5rem;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
-  margin: 8px 0 4px;
+  margin: 10px 0 6px;
+  font-family: 'Poppins', sans-serif;
 }
 
 .stat-label {
-  color: #718096;
+  color: #475569;
   font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat-icon {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
 }
 
-.stat-green  { color: #38a169; }
-.stat-red    { color: #e53e3e; }
-.stat-orange { color: #fd7e14; }
-.stat-blue   { color: #0d6efd; }
+.stat-green  { color: #059669; }
+.stat-red    { color: #dc2626; }
+.stat-orange { color: #d97706; }
+.stat-blue   { color: #2563EB; }

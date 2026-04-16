@@ -158,6 +158,13 @@ const Login = () => {
         <div className="auth-link">
           Don't have an account? <Link to="/register">Create one now</Link>
         </div>
+
+        {/* Staff / Admin portal link */}
+        <div className="auth-link" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #E2E8F0' }}>
+          <Link to="/staff-login" className="staff-portal-link">
+            🏥 Staff / Admin Login
+          </Link>
+        </div>
       </div>
     </div>
   );
