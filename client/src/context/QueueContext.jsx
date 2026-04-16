@@ -1,7 +1,7 @@
 // Shared queue state — allows ReportsPage to reflect live changes from QueueDashboard
 // TODO: Remove this context when backend is connected — both pages will read from the server directly
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 
 const INITIAL_PATIENTS = [
   { appointmentId: 'A001', patientName: 'Rahul Sharma',  queuePosition: 1, scheduledTime: '10:00 AM', status: 'Booked'          },
@@ -14,19 +14,19 @@ const INITIAL_PATIENTS = [
 const QueueContext = createContext(null);
 
 export function QueueProvider({ children }) {
-  const [patients, setPatients] = useState(INITIAL_PATIENTS);
+  const [patients, setPatients] = useState([]);
 
-  function updateStatus(appointmentId, newStatus) {
+  const updateStatus = useCallback((appointmentId, newStatus) => {
     setPatients((prev) =>
       prev.map((p) =>
         p.appointmentId === appointmentId ? { ...p, status: newStatus } : p
       )
     );
-  }
+  }, []);
 
-  function resetPatients(newList) {
+  const resetPatients = useCallback((newList) => {
     setPatients(newList);
-  }
+  }, []);
 
   // Derived report stats computed live from current patient states
   const liveReport = {

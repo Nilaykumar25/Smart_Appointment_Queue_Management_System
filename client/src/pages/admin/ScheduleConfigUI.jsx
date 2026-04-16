@@ -360,6 +360,139 @@ function BlackoutSection({ initialDates }) {
 }
 
 // ---------------------------------------------------------------------------
+// Section C — Emergency Slot Open/Close (REQ-11)
+// ---------------------------------------------------------------------------
+function SlotSection({ doctors }) {
+  const [selectedDoctorId, setSelectedDoctorId] = useState(doctors[0]?.doctorId ?? '');
+  const [selectedDate,     setSelectedDate]     = useState(todayISO());
+  const [slots,            setSlots]            = useState([]);
+  const [loadingSlots,     setLoadingSlots]     = useState(false);
+  const [togglingId,       setTogglingId]       = useState(null);
+  const [fetchError,       setFetchError]       = useState('');
+
+  async function fetchSlots() {
+    if (!selectedDoctorId || !selectedDate) return;
+    setLoadingSlots(true);
+    setFetchError('');
+    try {
+      const data = await apiCall(`/schedule/doctor/${selectedDoctorId}`);
+      // Filter to selected date only
+      const filtered = data.data.filter((s) => s.date === selectedDate);
+      setSlots(filtered);
+    } catch {
+      setFetchError('Could not load slots. Check that the server is running.');
+      setSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  }
+
+  async function handleToggle(scheduleId, isCurrentlyBlocked) {
+    setTogglingId(scheduleId);
+    const action = isCurrentlyBlocked ? 'open' : 'close';
+    try {
+      await apiCall(`/schedule/slots/${scheduleId}`, {
+        method: 'PATCH',
+        body: { action },
+      });
+      // Update local state — no need to refetch
+      setSlots((prev) =>
+        prev.map((s) =>
+          s.scheduleId === scheduleId ? { ...s, isBlackout: !isCurrentlyBlocked } : s
+        )
+      );
+    } catch {
+      setFetchError('Failed to update slot. Please try again.');
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
+  return (
+    <div className="card">
+      <div className="card-header">🚨 Emergency Slot Management</div>
+      <div className="card-body p-4">
+        <p className="text-muted mb-3" style={{ fontSize: '0.9rem' }}>
+          Open or close specific slots for emergency blocks (REQ-11)
+        </p>
+
+        {/* Controls */}
+        <div className="row mb-3">
+          <div className="col-md-5">
+            <label className="form-label">Doctor</label>
+            <select
+              className="form-select"
+              value={selectedDoctorId}
+              onChange={(e) => { setSelectedDoctorId(e.target.value); setSlots([]); }}
+            >
+              {doctors.map((d) => (
+                <option key={d.doctorId} value={d.doctorId}>
+                  {d.name} — {d.specialty}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="col-md-4">
+            <label className="form-label">Date</label>
+            <input
+              type="date"
+              className="form-control"
+              value={selectedDate}
+              onChange={(e) => { setSelectedDate(e.target.value); setSlots([]); }}
+            />
+          </div>
+          <div className="col-md-3 d-flex align-items-end">
+            <button
+              className="btn btn-outline-primary w-100"
+              onClick={fetchSlots}
+              disabled={loadingSlots}
+            >
+              {loadingSlots ? (
+                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+              ) : '🔍 Load Slots'}
+            </button>
+          </div>
+        </div>
+
+        {fetchError && <div className="alert alert-danger py-2">{fetchError}</div>}
+
+        {/* Slot list */}
+        {slots.length === 0 && !loadingSlots && !fetchError && (
+          <p className="text-muted">Select a doctor and date, then click Load Slots.</p>
+        )}
+
+        {slots.length > 0 && (
+          <ul className="list-group">
+            {slots.map((slot) => (
+              <li
+                key={slot.scheduleId}
+                className="list-group-item d-flex justify-content-between align-items-center"
+              >
+                <div>
+                  <span className="fw-semibold">{slot.startTime} – {slot.endTime}</span>
+                  <span className={`ms-3 badge ${slot.isBlackout ? 'bg-danger' : 'bg-success'}`}>
+                    {slot.isBlackout ? 'Blocked' : 'Open'}
+                  </span>
+                </div>
+                <button
+                  className={`btn btn-sm ${slot.isBlackout ? 'btn-outline-success' : 'btn-outline-danger'}`}
+                  disabled={togglingId === slot.scheduleId}
+                  onClick={() => handleToggle(slot.scheduleId, slot.isBlackout)}
+                >
+                  {togglingId === slot.scheduleId ? (
+                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                  ) : slot.isBlackout ? '✅ Reopen Slot' : '🚫 Block Slot'}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 function ScheduleConfigUI() {
@@ -397,6 +530,7 @@ function ScheduleConfigUI() {
       <h2>Schedule Configuration</h2>
       <ScheduleSection doctors={config.doctors} schedules={config.schedules} />
       <BlackoutSection initialDates={config.blackoutDates} />
+      <SlotSection doctors={config.doctors} />
     </div>
   );
 }

@@ -56,28 +56,27 @@ function ActionButtons({ patient, updatingId, onAction }) {
 
 function QueueDashboard() {
   const { patients, updateStatus, resetPatients } = useQueue();
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState('');
-  const [updatingId, setUpdatingId] = useState(null);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [error, setError]             = useState('');
+  const [updatingId, setUpdatingId]   = useState(null);
 
-  const fetchQueue = useCallback(async () => {
-    setLoading(true);
+  const fetchQueue = useCallback(async (isInitial = false) => {
+    if (isInitial) setInitialLoad(true);
     setError('');
     try {
       const data = await apiCall('/queue/today');
       resetPatients(data);
     } catch {
-      // TODO: Remove mock fallback when backend is ready
-      // Context already holds INITIAL_PATIENTS — nothing to reset
+      // context holds existing data — no flicker on background refresh failure
     } finally {
-      setLoading(false);
+      if (isInitial) setInitialLoad(false);
     }
   }, [resetPatients]);
 
-  // Initial load + 30-second auto-refresh
+  // Initial load + 30-second background refresh (no spinner on refresh)
   useEffect(() => {
-    fetchQueue();
-    const interval = setInterval(fetchQueue, 30_000);
+    fetchQueue(true);
+    const interval = setInterval(() => fetchQueue(false), 30_000);
     return () => clearInterval(interval);
   }, [fetchQueue]);
 
@@ -104,8 +103,8 @@ function QueueDashboard() {
         </div>
         <button
           className="btn btn-outline-secondary btn-sm"
-          onClick={fetchQueue}
-          disabled={loading}
+          onClick={() => fetchQueue(true)}
+          disabled={initialLoad}
         >
           🔄 Refresh
         </button>
@@ -113,7 +112,7 @@ function QueueDashboard() {
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {loading ? (
+      {initialLoad ? (
         <div className="d-flex justify-content-center py-5">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Loading...</span>
