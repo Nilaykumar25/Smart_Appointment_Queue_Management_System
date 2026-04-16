@@ -180,9 +180,41 @@ const BookingConfirmation = () => {
       let appointmentId = null;
       
       if (userId && pendingAppointment.schedule_id) {
+        // Step 1: Create appointment
+        const res = await fetch(`${BASE_URL}/appointments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getToken()}`,
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            patient_id: userId,
+            doctor_id: pendingAppointment.doctorId,
+            schedule_id: pendingAppointment.schedule_id,
+          }),
+        });
+
+        // REQ-5: Handle double-booking — slot taken by another patient
+        if (res.status === 409) {
+          const errData = await res.json();
+          setIsLoading(false);
+          alert(`⚠️ Booking conflict: ${errData.error}\n\nPlease go back and select a different time slot.`);
+          return;
+        }
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Booking failed');
+        }
+
+        const saved = await res.json();
+        completeAppointment.appointment_id = saved.appointment_id;
+        appointmentId = saved.appointment_id;
+
+        // Step 2: Create queue entry — REQ-8: wait time uses avg_consultation_duration
         try {
-          // Step 1: Create appointment
-          const res = await fetch(`${BASE_URL}/appointments`, {
+          const queueRes = await fetch(`${BASE_URL}/appointments/queue`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -190,46 +222,22 @@ const BookingConfirmation = () => {
             },
             credentials: 'include',
             body: JSON.stringify({
+              appointment_id: appointmentId,
               patient_id: userId,
-              doctor_id: pendingAppointment.doctorId,
-              schedule_id: pendingAppointment.schedule_id,
             }),
           });
-          
-          if (res.ok) {
-            const saved = await res.json();
-            completeAppointment.appointment_id = saved.appointment_id;
-            appointmentId = saved.appointment_id;
 
-            // Step 2: Create queue entry with calculated position
-            try {
-              const queueRes = await fetch(`${BASE_URL}/appointments/queue`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${getToken()}`,
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                  appointment_id: appointmentId,
-                  patient_id: userId,
-                }),
-              });
-
-              if (queueRes.ok) {
-                const queueData = await queueRes.json();
-                // REQ-7 & REQ-8: Store actual queue position from database
-                localStorage.setItem('userQueueData', JSON.stringify({
-                  position: queueData.queue_position,
-                  estimatedWaitTime: queueData.estimated_wait_time
-                }));
-              }
-            } catch (queueErr) {
-              console.warn('Queue entry creation failed:', queueErr);
-            }
+          if (queueRes.ok) {
+            const queueData = await queueRes.json();
+            // REQ-7 & REQ-8: Store actual queue position and duration-based wait time
+            localStorage.setItem('userQueueData', JSON.stringify({
+              position: queueData.queue_position,
+              estimatedWaitTime: queueData.estimated_wait_time,
+              avgConsultationDuration: queueData.avg_consultation_duration,
+            }));
           }
-        } catch (err) {
-          console.warn('API save failed, falling back to localStorage:', err);
+        } catch (queueErr) {
+          console.warn('Queue entry creation failed:', queueErr);
         }
       }
 

@@ -1,5 +1,6 @@
 /**
  * REQ-5: Book Appointment — fetches real doctors & slots from backend
+ * REQ-8: Shows estimated wait time per slot based on avg consultation duration
  * REQ-15: Local schedule cache for offline readability
  */
 import { useState, useMemo, useEffect } from 'react';
@@ -88,8 +89,31 @@ export default function BookAppointment() {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     });
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (!selectedSlot) { alert('Please select a time slot'); return; }
+
+    // REQ-5: Re-validate slot availability before navigating to confirmation
+    // This catches cases where another user booked the slot while this user was deciding
+    try {
+      const freshSlots = await fetch(
+        `${BASE_URL}/schedules/${doctorId}/slots?date=${selectedDate}`,
+        { headers: { Authorization: `Bearer ${getToken()}` } }
+      ).then(r => r.json());
+
+      const stillAvailable = Array.isArray(freshSlots) && freshSlots.some(s => s.schedule_id === selectedSlot);
+      if (!stillAvailable) {
+        // Refresh the displayed slots and clear selection
+        setAvailableSlots(freshSlots);
+        setSelectedSlot(null);
+        alert('⚠️ This slot was just booked by someone else. Please select another time.');
+        return;
+      }
+      // Update displayed slots with fresh data
+      setAvailableSlots(freshSlots);
+    } catch {
+      // Network error — proceed anyway; server will enforce the constraint
+    }
+
     const slot = availableSlots.find(s => s.schedule_id === selectedSlot);
     navigate('/booking-confirmation', {
       state: {
@@ -98,6 +122,7 @@ export default function BookAppointment() {
           doctorId: doctor.doctor_id,
           doctorName: doctor.name,
           specialty: doctor.specialty,
+          avgConsultationDuration: doctor.avg_consultation_duration || 15,
           schedule_id: slot.schedule_id,
           date: selectedDate,
           time: slot.start_time,
@@ -178,16 +203,26 @@ export default function BookAppointment() {
             {/* Slots */}
             <div className="form-section">
               <h3>Available Time Slots</h3>
+              {doctor.avg_consultation_duration && (
+                <p className="slot-duration-note">
+                  ⏱ Avg consultation: {doctor.avg_consultation_duration} min per patient
+                </p>
+              )}
               <div className="slots-grid">
-                {filteredSlots.length > 0 ? filteredSlots.map(slot => (
-                  <button
-                    key={slot.schedule_id}
-                    className={`slot-btn ${selectedSlot === slot.schedule_id ? 'selected' : ''}`}
-                    onClick={() => setSelectedSlot(slot.schedule_id)}
-                  >
-                    {slot.start_time}
-                  </button>
-                )) : (
+                {filteredSlots.length > 0 ? filteredSlots.map((slot, idx) => {
+                  // REQ-8: Estimated wait = position in list × avg consultation duration
+                  const waitMins = idx * (doctor.avg_consultation_duration || 15);
+                  return (
+                    <button
+                      key={slot.schedule_id}
+                      className={`slot-btn ${selectedSlot === slot.schedule_id ? 'selected' : ''}`}
+                      onClick={() => setSelectedSlot(slot.schedule_id)}
+                    >
+                      <span className="slot-time">{slot.start_time}</span>
+                      <span className="slot-wait">~{waitMins} min wait</span>
+                    </button>
+                  );
+                }) : (
                   <p className="no-slots">
                     {searchQuery ? 'No slots match your search' : 'No available slots for this date'}
                   </p>

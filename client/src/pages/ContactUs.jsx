@@ -1,22 +1,33 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import emailjs from '@emailjs/browser';
 import '../styles/ContactUs.css';
 
-export default function ContactUs() {
-  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
-  const [submitted, setSubmitted] = useState(false);
+const EMAILJS_SERVICE_ID  = 'service_a5ss3og';
+const EMAILJS_TEMPLATE_ID = 'template_ho8cc38';
+const EMAILJS_PUBLIC_KEY  = 'YkMgY0qIc4Wy-YxtG';
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+export default function ContactUs() {
+  const formRef = useRef(null);
+  const [sending, setSending] = useState(false);
+  const [status, setStatus] = useState(null); // 'success' | 'error' | null
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => {
-      setFormData({ name: '', email: '', subject: '', message: '' });
-      setSubmitted(false);
-    }, 3000);
+    setSending(true);
+    setStatus(null);
+
+    emailjs
+      .sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, formRef.current, EMAILJS_PUBLIC_KEY)
+      .then(() => {
+        setStatus('success');
+        formRef.current.reset();
+      })
+      .catch(() => {
+        setStatus('error');
+      })
+      .finally(() => {
+        setSending(false);
+      });
   };
 
   return (
@@ -59,29 +70,62 @@ export default function ContactUs() {
 
         <section className="contact-form-section">
           <h2>Send us a Message</h2>
-          {submitted && (
+
+          {status === 'success' && (
             <div className="success-message">
-              ✓ Thank you! We've received your message and will get back to you soon.
+              ✓ Message sent successfully! We'll get back to you within 24 hours.
             </div>
           )}
-          <form onSubmit={handleSubmit} className="contact-form">
+          {status === 'error' && (
+            <div className="error-message">
+              ✗ Failed to send message. Please try again or email us directly.
+            </div>
+          )}
+
+          <form ref={formRef} onSubmit={handleSubmit} className="contact-form">
             <div className="form-group">
               <label htmlFor="name">Full Name</label>
-              <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} required placeholder="Your full name" />
+              <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                placeholder="Your full name"
+              />
             </div>
             <div className="form-group">
               <label htmlFor="email">Email Address</label>
-              <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required placeholder="your@email.com" />
+              <input
+                type="email"
+                id="email"
+                name="email"
+                required
+                placeholder="your@email.com"
+              />
             </div>
             <div className="form-group">
               <label htmlFor="subject">Subject</label>
-              <input type="text" id="subject" name="subject" value={formData.subject} onChange={handleChange} required placeholder="How can we help?" />
+              <input
+                type="text"
+                id="subject"
+                name="subject"
+                required
+                placeholder="How can we help?"
+              />
             </div>
             <div className="form-group">
               <label htmlFor="message">Message</label>
-              <textarea id="message" name="message" value={formData.message} onChange={handleChange} required rows="6" placeholder="Tell us more about your inquiry..." />
+              <textarea
+                id="message"
+                name="message"
+                required
+                rows="6"
+                placeholder="Tell us more about your inquiry..."
+              />
             </div>
-            <button type="submit" className="submit-btn">Send Message</button>
+            <button type="submit" className="submit-btn" disabled={sending}>
+              {sending ? 'Sending...' : 'SEND MESSAGE'}
+            </button>
           </form>
         </section>
       </div>

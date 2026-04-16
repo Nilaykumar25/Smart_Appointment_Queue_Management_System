@@ -627,3 +627,33 @@
     font-size: 1.5rem;
   }
 }
+
+/* REQ-8: Slot wait time display */
+.slot-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.slot-time {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.slot-wait {
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.slot-btn.selected .slot-wait {
+  opacity: 0.9;
+}
+
+.slot-duration-note {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}

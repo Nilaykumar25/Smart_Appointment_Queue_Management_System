@@ -1,4 +1,5 @@
 // Implements: REQ-7  — Real-time queue updates
+// Implements: REQ-8  — Wait time based on avg consultation duration
 // Implements: REQ-13 — Auto no-show flag (cron handles flagging; this serves the data)
 // See SRS Section 4.3 — Queue Management
 
@@ -67,10 +68,23 @@ router.get('/today', requireRole(['admin', 'staff']), async (req, res) => {
          u.name            AS "patientName",
          q.queue_position  AS "queuePosition",
          TO_CHAR(s.start_time, 'HH24:MI') AS "scheduledTime",
-         a.status
+         a.status,
+         d.avg_consultation_duration AS "avgConsultationDuration",
+         -- REQ-8: Live wait = patients ahead × avg consultation duration
+         (
+           SELECT COUNT(*)
+           FROM queue q2
+           JOIN appointments a2 ON a2.appointment_id = q2.appointment_id
+           JOIN schedules s2    ON s2.schedule_id    = a2.schedule_id
+           WHERE a2.doctor_id = a.doctor_id
+             AND s2.date = CURRENT_DATE
+             AND s2.start_time < s.start_time
+             AND a2.status IN ('Booked', 'Arrived')
+         ) * COALESCE(d.avg_consultation_duration, 15) AS "estimatedWaitMinutes"
        FROM appointments a
        JOIN users u        ON u.user_id       = a.patient_id
        JOIN schedules s    ON s.schedule_id   = a.schedule_id
+       JOIN doctors d      ON d.doctor_id     = a.doctor_id
        LEFT JOIN queue q   ON q.appointment_id = a.appointment_id
        WHERE DATE(s.date AT TIME ZONE 'Asia/Kolkata') = (NOW() AT TIME ZONE 'Asia/Kolkata')::date
          AND a.status NOT IN ('Completed', 'No-Show')
