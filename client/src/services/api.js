@@ -15,6 +15,7 @@ export async function apiCall(endpoint, options = {}) {
   const config = {
     ...options,
     headers,
+    credentials: 'include',
     ...(options.body && typeof options.body === 'object'
       ? { body: JSON.stringify(options.body) }
       : {}),

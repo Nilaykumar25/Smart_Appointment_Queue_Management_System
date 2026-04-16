@@ -1,4 +1,6 @@
 // Implements: REQ-17 — see SRS Section 4.7 (Notification and Alerts Management)
+// Real endpoint: POST /api/notifications/broadcast
+// Backend file: server/src/routes/notifications.js
 
 import { useState, useEffect } from 'react';
 import { apiCall } from '../../services/api';
@@ -52,19 +54,24 @@ function BroadcastAlertForm() {
     setErrorMsg('');
 
     try {
-      await apiCall('/notifications/broadcast', {
+      const data = await apiCall('/notifications/broadcast', {
         method: 'POST',
         body: { message, target },
       });
-    } catch {
-      // TODO: Remove mock success when backend is ready
+      const count = data.sentCount || 0;
+      setSuccessMsg(
+        count > 0
+          ? `✅ Broadcast sent successfully to ${count} patients!`
+          : '✅ Broadcast sent! (No active patients in selected group)'
+      );
+      setMessage('');
+      setTarget('all_waiting');
+    } catch (err) {
+      console.error('Broadcast error:', err);
+      setErrorMsg('❌ Failed to send broadcast. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    // Treat as success regardless (mock behavior until backend is ready)
-    setSuccessMsg('✅ Broadcast sent successfully!');
-    setMessage('');
-    setTarget('all_waiting');
-    setLoading(false);
   }
 
   const charWarning = message.length >= WARN_AT;
