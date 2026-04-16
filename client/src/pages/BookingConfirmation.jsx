@@ -177,8 +177,11 @@ const BookingConfirmation = () => {
 
       // Save to backend API
       const userId = getUserId();
+      let appointmentId = null;
+      
       if (userId && pendingAppointment.schedule_id) {
         try {
+          // Step 1: Create appointment
           const res = await fetch(`${BASE_URL}/appointments`, {
             method: 'POST',
             headers: {
@@ -192,9 +195,38 @@ const BookingConfirmation = () => {
               schedule_id: pendingAppointment.schedule_id,
             }),
           });
+          
           if (res.ok) {
             const saved = await res.json();
             completeAppointment.appointment_id = saved.appointment_id;
+            appointmentId = saved.appointment_id;
+
+            // Step 2: Create queue entry with calculated position
+            try {
+              const queueRes = await fetch(`${BASE_URL}/appointments/queue`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${getToken()}`,
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                  appointment_id: appointmentId,
+                  patient_id: userId,
+                }),
+              });
+
+              if (queueRes.ok) {
+                const queueData = await queueRes.json();
+                // REQ-7 & REQ-8: Store actual queue position from database
+                localStorage.setItem('userQueueData', JSON.stringify({
+                  position: queueData.queue_position,
+                  estimatedWaitTime: queueData.estimated_wait_time
+                }));
+              }
+            } catch (queueErr) {
+              console.warn('Queue entry creation failed:', queueErr);
+            }
           }
         } catch (err) {
           console.warn('API save failed, falling back to localStorage:', err);
@@ -206,11 +238,6 @@ const BookingConfirmation = () => {
       const appointments = existingAppointments ? JSON.parse(existingAppointments) : [];
       appointments.push(completeAppointment);
       localStorage.setItem('userAppointments', JSON.stringify(appointments));
-
-      // REQ-7 & REQ-8: Queue data
-      const queuePosition = Math.floor(Math.random() * 10) + 1;
-      const estimatedWaitTime = queuePosition * 5;
-      localStorage.setItem('userQueueData', JSON.stringify({ position: queuePosition, estimatedWaitTime }));
 
       // Show success message
       setConfirmationMessage('✅ Appointment booked successfully!');

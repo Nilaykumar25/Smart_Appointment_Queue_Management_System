@@ -52,14 +52,42 @@ router.post('/queue', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const { rows: pos } = await client.query(
-      `SELECT COUNT(*) AS position FROM queue`
+    // Get appointment details (doctor_id and date)
+    const { rows: apptDetails } = await client.query(
+      `SELECT a.doctor_id, s.date, s.start_time
+       FROM appointments a
+       JOIN schedules s ON s.schedule_id = a.schedule_id
+       WHERE a.appointment_id = $1`,
+      [appointment_id]
     );
+
+    if (apptDetails.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    const { doctor_id, date, start_time } = apptDetails[0];
+
+    // Count existing queue entries for same doctor on same day with earlier time slots
+    const { rows: pos } = await client.query(
+      `SELECT COUNT(*) AS position
+       FROM queue q
+       JOIN appointments a ON a.appointment_id = q.appointment_id
+       JOIN schedules s ON s.schedule_id = a.schedule_id
+       WHERE a.doctor_id = $1
+         AND s.date = $2
+         AND s.start_time < $3
+         AND a.status IN ('Booked', 'Arrived')`,
+      [doctor_id, date, start_time]
+    );
+
+    const queuePosition = parseInt(pos[0].position) + 1;
+    const estimatedWaitTime = queuePosition * 10; // 10 minutes per position
 
     const { rows: entry } = await client.query(
       `INSERT INTO queue (appointment_id, queue_position, estimated_wait_time)
        VALUES ($1, $2, $3) RETURNING *`,
-      [appointment_id, parseInt(pos[0].position) + 1, (parseInt(pos[0].position) + 1) * 10]
+      [appointment_id, queuePosition, estimatedWaitTime]
     );
 
     await client.query('COMMIT');
@@ -81,15 +109,25 @@ router.get('/queue/:patientId', async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT q.queue_position AS position,
-              (SELECT COUNT(*) FROM queue q2
+              q.estimated_wait_time,
+              a.doctor_id,
+              s.date,
+              s.start_time,
+              (SELECT COUNT(*)
+               FROM queue q2
                JOIN appointments a2 ON a2.appointment_id = q2.appointment_id
-               WHERE q2.queue_position < q.queue_position
-                 AND a2.status IN ('Booked','Arrived')) AS ahead,
-              q.estimated_wait_time
+               JOIN schedules s2 ON s2.schedule_id = a2.schedule_id
+               WHERE a2.doctor_id = a.doctor_id
+                 AND s2.date = s.date
+                 AND s2.start_time < s.start_time
+                 AND a2.status IN ('Booked','Arrived')) AS ahead
        FROM queue q
        JOIN appointments a ON a.appointment_id = q.appointment_id
+       JOIN schedules s ON s.schedule_id = a.schedule_id
        WHERE a.patient_id = $1
-         AND a.status IN ('Booked', 'Arrived')`,
+         AND a.status IN ('Booked', 'Arrived')
+       ORDER BY s.date, s.start_time
+       LIMIT 1`,
       [patientId]
     );
 
