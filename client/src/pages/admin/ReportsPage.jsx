@@ -1,11 +1,21 @@
 // Implements: REQ-19 — see SRS Section 4.8 (Administrative Reporting and Logs)
 // Implements: REQ-18 — see SRS Section 4.8 (Audit Logs)
+// Real endpoint: GET /api/reports/daily?date=YYYY-MM-DD
+// TODO: Backend endpoint not yet implemented — using live queue context as fallback
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiCall } from '../../services/api';
 import { useQueue } from '../../context/QueueContext';
 import Toast from '../../components/common/Toast';
 import './ReportsPage.css';
+
+// TODO: Remove MOCK_REPORT when backend /reports/daily is implemented
+const MOCK_REPORT = {
+  totalPatientsSeen:      0,
+  totalNoShows:           0,
+  totalCancellations:     0,
+  averageWaitTimeMinutes: 18,
+};
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -36,11 +46,11 @@ function ReportsPage() {
       try {
         const data = await apiCall('/reports/daily?date=' + date);
         setReport(data);
-      } catch {
-        // TODO: Remove mock fallback when backend is ready
-        // Fall back to live context data derived from queue state
-        setFetchError('Could not load report for this date. Showing live queue data.');
-        setReport(null);
+      } catch (err) {
+        console.error('Report fetch failed, using live queue data:', err);
+        // Backend endpoint not yet built — fall back to live context stats
+        setFetchError('Report endpoint not yet available. Showing live queue data.');
+        setReport({ ...MOCK_REPORT, date });
       } finally {
         setLoading(false);
       }

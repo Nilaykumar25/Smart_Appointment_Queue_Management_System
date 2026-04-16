@@ -1,14 +1,18 @@
 // Implements: REQ-1 (role-based access), REQ-2 (data encryption)
 // See SRS Section 4 — User Registration and Authentication
-require("dotenv").config({ path: require("path").resolve(__dirname, "../../../.env") });
-const jwt = require("jsonwebtoken");
-const redisClient = require("../db/redis");
-const express = require("express");
-const bcrypt = require("bcrypt");
-const db = require("../db/connection");
-const router = express.Router();
 
-// POST /auth/register
+require("dotenv").config({ path: require("path").resolve(__dirname, "../../../.env") });
+const express      = require("express");
+const bcrypt       = require("bcrypt");
+const jwt          = require("jsonwebtoken");
+const router       = express.Router();
+const db           = require("../db/connection");
+const redisClient  = require("../db/redis");
+const loginLimiter = require("../middleware/loginLimiter");
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/auth/register
+// ─────────────────────────────────────────────────────────────────────────────
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password, role = "patient" } = req.body;
@@ -39,8 +43,10 @@ router.post("/register", async (req, res) => {
     );
 
     const user = rows[0];
+
+    // Issue tokens immediately on register so user is logged in
     const accessToken = jwt.sign(
-      { userId: user.user_id, role: user.role },
+      { userId: user.user_id, role: user.role, name: user.name },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRY || "15m" }
     );
@@ -53,43 +59,61 @@ router.post("/register", async (req, res) => {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure:   process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge:   7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(201).json({
       accessToken,
       userId: user.user_id,
-      role: user.role,
-      name: user.name,
+      role:   user.role,
+      name:   user.name,
     });
   } catch (err) {
-    console.error("Register error:", err);
+    console.error("POST /auth/register error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// POST /auth/login
-router.post("/login", async (req, res) => {
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/auth/login — JWT access token + httpOnly refresh token
+// Implements: REQ-1, REQ-3
+// loginLimiter attaches req.loginSuccess / req.loginFailed helpers
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password)
       return res.status(400).json({ error: "Email and password are required" });
 
-    const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+    const result = await db.query(
+      "SELECT user_id, name, email, password_hash, role, is_active FROM users WHERE email = $1",
+      [email]
+    );
     const user = result.rows[0];
 
-    if (!user) return res.status(401).json({ error: "Invalid credentials" });
+    if (!user) {
+      if (req.loginFailed) await req.loginFailed();
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    if (!user.is_active) {
+      return res.status(403).json({ error: "Account is deactivated" });
+    }
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: "Invalid credentials" });
+    if (!valid) {
+      if (req.loginFailed) await req.loginFailed();
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
 
-    if (!user.is_active) return res.status(403).json({ error: "Account disabled" });
+    if (req.loginSuccess) await req.loginSuccess();
 
+    // Sign access token — includes name so frontend can decode it
     const accessToken = jwt.sign(
-      { userId: user.user_id, role: user.role },
+      { userId: user.user_id, role: user.role, name: user.name },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRY || "15m" }
     );
@@ -102,27 +126,25 @@ router.post("/login", async (req, res) => {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure:   process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge:   7 * 24 * 60 * 60 * 1000,
     });
 
-    return res.status(200).json({
-      accessToken,
-      userId: user.user_id,
-      role: user.role,
-      name: user.name,
-    });
+    return res.status(200).json({ accessToken });
   } catch (err) {
-    console.error("Login error:", err);
+    console.error("POST /auth/login error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// POST /auth/logout
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/auth/logout — invalidate both tokens immediately
+// Implements: REQ-1 (session management)
+// ─────────────────────────────────────────────────────────────────────────────
 router.post("/logout", async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader   = req.headers.authorization;
     const refreshToken = req.cookies?.refreshToken;
 
     if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -143,7 +165,7 @@ router.post("/logout", async (req, res) => {
     res.clearCookie("refreshToken");
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("POST /auth/logout error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });

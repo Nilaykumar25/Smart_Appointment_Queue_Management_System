@@ -1,6 +1,8 @@
 // Implements: REQ-7  — see SRS Section 4.3 (Queue Management and Status Tracking)
 // Implements: REQ-12 — see SRS Section 4.5 (Appointment Status Management)
 // Implements: REQ-13 — see SRS Section 4.5 (No-Show Trigger)
+// Real endpoint: PATCH /api/appointments/:id/status
+// Backend file: server/src/routes/appointments.js
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiCall } from '../../services/api';
@@ -8,11 +10,14 @@ import { useQueue } from '../../context/QueueContext';
 import StatusBadge from '../../components/common/StatusBadge';
 import './QueueDashboard.css';
 
-const NEXT_STATUS = {
-  'Booked_Mark Arrived':          'Arrived',
-  'Arrived_Start Consultation':   'In-Consultation',
-  'In-Consultation_Mark Completed': 'Completed',
-};
+// TODO: Remove mock data when GET /api/appointments/queue/today is implemented
+const MOCK_PATIENTS = [
+  { appointmentId: 'A001', patientName: 'Rahul Sharma',  queuePosition: 1, scheduledTime: '10:00 AM', status: 'Booked'          },
+  { appointmentId: 'A002', patientName: 'Priya Singh',   queuePosition: 2, scheduledTime: '10:15 AM', status: 'Arrived'         },
+  { appointmentId: 'A003', patientName: 'Amit Verma',    queuePosition: 3, scheduledTime: '10:30 AM', status: 'In-Consultation' },
+  { appointmentId: 'A004', patientName: 'Sneha Patel',   queuePosition: 4, scheduledTime: '10:45 AM', status: 'Completed'       },
+  { appointmentId: 'A005', patientName: 'Rohan Das',     queuePosition: 5, scheduledTime: '11:00 AM', status: 'No-Show'         },
+];
 
 function ActionButtons({ patient, updatingId, onAction }) {
   const { appointmentId, status } = patient;
@@ -64,11 +69,12 @@ function QueueDashboard() {
     setLoading(true);
     setError('');
     try {
-      const data = await apiCall('/queue/today');
+      // TODO: Replace with real endpoint when GET /api/appointments/queue/today is implemented
+      const data = await apiCall('/appointments/queue/today');
       resetPatients(data);
-    } catch {
-      // TODO: Remove mock fallback when backend is ready
-      // Context already holds INITIAL_PATIENTS — nothing to reset
+    } catch (err) {
+      console.error('Queue fetch failed, using mock data:', err);
+      // Fallback: context already holds MOCK_PATIENTS
     } finally {
       setLoading(false);
     }
@@ -81,6 +87,7 @@ function QueueDashboard() {
     return () => clearInterval(interval);
   }, [fetchQueue]);
 
+  // Implements: REQ-12 — Real endpoint: PATCH /api/appointments/:id/status
   async function handleAction(appointmentId, newStatus) {
     setUpdatingId(appointmentId);
     try {
@@ -88,11 +95,15 @@ function QueueDashboard() {
         method: 'PATCH',
         body: { status: newStatus },
       });
-    } catch {
-      // API not ready — update locally
+      // Update local state on API success
+      updateStatus(appointmentId, newStatus);
+    } catch (err) {
+      console.error('Status update error:', err);
+      // Still update locally so UI stays responsive
+      updateStatus(appointmentId, newStatus);
+    } finally {
+      setUpdatingId(null);
     }
-    updateStatus(appointmentId, newStatus);
-    setUpdatingId(null);
   }
 
   return (
