@@ -14,7 +14,7 @@
 
 /* REQ-5: Hero Section */
 .booking-hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #2563EB 100%);
   color: white;
   padding: 4rem 2rem 3rem;
   text-align: center;
@@ -93,12 +93,51 @@
   font-size: 4rem;
   width: 100px;
   height: 100px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
   border-radius: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1.5rem;
+}
+
+.doctor-info-content .specialty {
+  background: #2563EB;
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: inline-block;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.date-btn.active {
+  border-color: #2563EB;
+  background: #2563EB;
+  color: white;
+  box-shadow: 0 8px 20px rgba(37,99,235,0.3);
+}
+
+.slot-btn.selected {
+  border-color: #2563EB;
+  background: #2563EB;
+  color: white;
+  box-shadow: 0 8px 20px rgba(37,99,235,0.3);
+}
+
+.confirm-btn {
+  background: #2563EB;
+  color: white;
+  box-shadow: 0 8px 20px rgba(37,99,235,0.25);
+}
+
+.confirm-btn:hover:not(.disabled) {
+  background: #1D4ED8;
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(37,99,235,0.35);
 }
 
 .doctor-info-content {
