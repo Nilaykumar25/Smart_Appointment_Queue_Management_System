@@ -51,6 +51,9 @@ const Dashboard = () => {
   // ── Loading state — shows skeleton UI while localStorage data is read ─────
   const [isLoading, setIsLoading] = useState(true);
 
+  // ── Notifications (REQ-16) ────────────────────────────────────────────────
+  const [notifications, setNotifications] = useState([]);
+
   // ── REQ-14: Ref holds the debounced refresh function across renders ───────
   const debouncedQueueRefreshRef = useRef(null);
 
@@ -110,6 +113,25 @@ const Dashboard = () => {
       clearInterval(pollInterval);
       debouncedQueueRefreshRef.current = null;
     };
+  }, []);
+
+  // REQ-16: Fetch notifications for the logged-in patient
+  useEffect(() => {
+    async function fetchNotifications() {
+      try {
+        const token = localStorage.getItem('saqms_token');
+        if (!token) return;
+        const res = await fetch('http://localhost:5000/api/notifications/my', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setNotifications(data.notifications || []);
+      } catch {
+        // silently fail — notifications are non-critical
+      }
+    }
+    fetchNotifications();
   }, []);
 
   // ==========================================================================
@@ -479,21 +501,33 @@ const Dashboard = () => {
             </div>
 
             {/* ── MODULE 4: NOTIFICATIONS ───────────────────────────────── */}
-            {/* Placeholder — will display alerts, reminders, and updates    */}
             <div className="dashboard-card">
               <h2>🔔 Recent Notifications</h2>
-              {/* ── EMPTY STATE: Inbox is clear ────────────────────────── */}
-              <div className="empty-state">
-                <div className="empty-state-icon">🔕</div>
-                <h3 className="empty-state-title">All Caught Up!</h3>
-                <p className="empty-state-desc">
-                  You have no new notifications right now.
-                </p>
-                <p className="empty-state-hint">
-                  Appointment confirmations, queue alerts, and reminders will
-                  appear here as events occur.
-                </p>
-              </div>
+              {notifications.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">🔕</div>
+                  <h3 className="empty-state-title">All Caught Up!</h3>
+                  <p className="empty-state-desc">
+                    You have no new notifications right now.
+                  </p>
+                  <p className="empty-state-hint">
+                    Appointment confirmations, queue alerts, and reminders will
+                    appear here as events occur.
+                  </p>
+                </div>
+              ) : (
+                <ul className="list-group">
+                  {notifications.map((n) => (
+                    <li key={n.notificationId} className="list-group-item d-flex justify-content-between align-items-start">
+                      <div>
+                        <div>{n.message}</div>
+                        <small className="text-muted">{n.sentAt}</small>
+                      </div>
+                      <span className="badge bg-primary ms-2">New</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
           </>
