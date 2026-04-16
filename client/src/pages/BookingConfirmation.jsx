@@ -209,6 +209,8 @@ const BookingConfirmation = () => {
         }
 
         const saved = await res.json();
+        // Use real DB appointment_id as the primary id for cancel/reschedule calls
+        completeAppointment.id = saved.appointment_id;
         completeAppointment.appointment_id = saved.appointment_id;
         appointmentId = saved.appointment_id;
 

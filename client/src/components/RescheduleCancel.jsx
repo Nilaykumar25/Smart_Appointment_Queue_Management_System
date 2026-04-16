@@ -256,7 +256,7 @@ const RescheduleCancel = ({ appointment, isOpen, onClose, onReschedule, onCancel
    * Clears queue data if patient was in queue for this appointment
    */
   const handleConfirmCancel = async () => {
-    setIsLoading(false);
+    setIsLoading(true);
     setError('');
 
     try {

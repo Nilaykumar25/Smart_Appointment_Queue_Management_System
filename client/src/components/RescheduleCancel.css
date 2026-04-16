@@ -371,15 +371,15 @@
   color: #2c3e50;
 }
 
-/* Reschedule button styling */
+/* Reschedule button styling — uses project primary blue */
 .action-btn.reschedule-btn {
-  color: #667eea;
+  color: #2563EB;
 }
 
 .action-btn.reschedule-btn:hover:not(:disabled) {
-  background-color: #f0f3ff;
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  background-color: #EFF6FF;
+  border-color: #2563EB;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.15);
 }
 
 /* Cancel button styling */
@@ -542,13 +542,13 @@
 
 /* Primary button - action button (reschedule) */
 .btn-primary {
-  background-color: #667eea;
+  background-color: #2563EB;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #5568d3;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background-color: #1D4ED8;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.3);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -619,7 +619,7 @@
   /* Styling */
   background-color: #f8f9fa;
   border-radius: 8px;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid #2563EB;
 }
 
 .confirmation-details p {
