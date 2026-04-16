@@ -1,10 +1,12 @@
 /**
  * REQ-5: Book Appointment — fetches real doctors & slots from backend
+ * REQ-15: Local schedule cache for offline readability
  */
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getToken } from '../services/auth';
+import { cacheSchedule, getCachedSchedule } from '../services/scheduleCache';
 import '../styles/BookAppointment.css';
 
 const BASE_URL = 'http://localhost:5000/api';
@@ -44,22 +46,31 @@ export default function BookAppointment() {
       .catch(() => { setError('Failed to load doctor info'); setLoading(false); });
   }, [doctorId]);
 
-  // Fetch slots when date changes
+  // Fetch slots when date changes (REQ-15: with local cache)
   useEffect(() => {
     if (!selectedDate || !doctorId) return;
-    const cacheKey = `slots_${doctorId}_${selectedDate}`;
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached) { setAvailableSlots(JSON.parse(cached)); return; }
+    
+    // REQ-15: Try to get cached schedule first
+    const cached = getCachedSchedule(doctorId, selectedDate);
+    if (cached) {
+      setAvailableSlots(cached);
+      return;
+    }
 
+    // Fetch from API if cache miss
     fetch(`${BASE_URL}/schedules/${doctorId}/slots?date=${selectedDate}`, {
       headers: { Authorization: `Bearer ${getToken()}` },
     })
       .then(r => r.json())
       .then(slots => {
         setAvailableSlots(slots);
-        sessionStorage.setItem(cacheKey, JSON.stringify(slots));
+        // REQ-15: Cache the fetched schedule
+        cacheSchedule(doctorId, selectedDate, slots);
       })
-      .catch(() => setAvailableSlots([]));
+      .catch(err => {
+        console.error('[REQ-15] Failed to fetch schedule, using cached data if available:', err);
+        setAvailableSlots([]);
+      });
   }, [doctorId, selectedDate]);
 
   // Set default date
