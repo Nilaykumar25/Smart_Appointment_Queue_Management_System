@@ -23,6 +23,7 @@ function Sidebar() {
 
         {role === 'admin' && (
           <>
+            <NavLink to="/admin/appointments">🗓️ Appointments</NavLink>
             <NavLink to="/admin/schedule">📅 Schedule Config</NavLink>
             <NavLink to="/admin/reports">📊 Reports</NavLink>
           </>

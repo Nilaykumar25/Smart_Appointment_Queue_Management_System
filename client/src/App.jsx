@@ -29,6 +29,7 @@ import BroadcastAlertForm from './pages/staff/BroadcastAlertForm';
 // Admin pages
 import ScheduleConfigUI from './pages/admin/ScheduleConfigUI';
 import ReportsPage from './pages/admin/ReportsPage';
+import AppointmentsPage from './pages/admin/AppointmentsPage';
 
 import './App.css';
 
@@ -82,8 +83,9 @@ function App() {
             {/* ── Admin-only routes ── */}
             <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
               <Route element={<AdminShell />}>
-                <Route path="/admin/schedule" element={<ScheduleConfigUI />} />
-                <Route path="/admin/reports"  element={<ReportsPage />} />
+                <Route path="/admin/schedule"     element={<ScheduleConfigUI />} />
+                <Route path="/admin/reports"      element={<ReportsPage />} />
+                <Route path="/admin/appointments" element={<AppointmentsPage />} />
               </Route>
             </Route>
 
