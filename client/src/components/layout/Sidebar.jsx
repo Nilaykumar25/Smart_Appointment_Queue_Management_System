@@ -8,8 +8,8 @@ function Sidebar() {
   const navigate = useNavigate();
   const role = getRole();
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     navigate('/staff-login');
   }
 
