@@ -2,6 +2,35 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/connection');
 const { saveNotification } = require('./notifications');
+const requireRole = require('../middleware/requireRole');
+
+// Implements: REQ-7 (admin view) — GET /appointments/all
+// Returns all upcoming appointments for admin panel
+router.get('/all', requireRole(['admin', 'staff']), async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT
+         a.appointment_id  AS "appointmentId",
+         u.name            AS "patientName",
+         d.name            AS "doctorName",
+         d.specialty       AS "specialty",
+         TO_CHAR(s.date, 'YYYY-MM-DD')       AS "date",
+         TO_CHAR(s.start_time, 'HH24:MI')    AS "time",
+         a.status
+       FROM appointments a
+       JOIN users u     ON u.user_id     = a.patient_id
+       JOIN doctors d   ON d.doctor_id   = a.doctor_id
+       JOIN schedules s ON s.schedule_id = a.schedule_id
+       WHERE s.date >= CURRENT_DATE
+         AND a.status NOT IN ('Completed', 'No-Show')
+       ORDER BY s.date ASC, s.start_time ASC`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /appointments/all error:', err);
+    res.status(500).json({ error: 'Failed to fetch appointments' });
+  }
+});
 
 // Implements: REQ-5 --- see SRS Section 3.5
 // POST /appointments --- DB-level lock prevents double booking

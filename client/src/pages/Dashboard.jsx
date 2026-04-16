@@ -246,7 +246,17 @@ const Dashboard = () => {
    * handleCancelAppointmentFromModal — removes the cancelled appointment
    * from state/localStorage and clears any active queue data for that booking.
    */
-  const handleCancelAppointmentFromModal = (cancellationRecord) => {
+  const handleCancelAppointmentFromModal = async (cancellationRecord) => {
+    try {
+      const token = localStorage.getItem('saqms_token');
+      await fetch(`http://localhost:5000/api/appointments/${cancellationRecord.appointmentId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {
+      // silently continue — update local state regardless
+    }
+
     const updated = upcomingAppointments.filter(
       (apt) => apt.id !== cancellationRecord.appointmentId
     );
