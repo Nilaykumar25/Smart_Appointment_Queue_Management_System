@@ -27,6 +27,7 @@ pool.connect((err, client, release) => {
   if (err) {
     console.error("❌ Database connection failed:", err.message);
     console.error("   Check your .env file — DB_HOST, DB_USER, DB_PASSWORD, DB_NAME");
+    process.exit(1); // Cannot run without database
   } else {
     console.log("✅ Database connected successfully");
     release();

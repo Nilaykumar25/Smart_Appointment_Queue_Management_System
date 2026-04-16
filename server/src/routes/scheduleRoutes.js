@@ -98,6 +98,15 @@ router.post(
       return res.status(400).json({ error: "startTime must be before endTime" });
     }
 
+    const validDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    if (!workingDays.every(d => validDays.includes(d))) {
+      return res.status(400).json({ error: "workingDays must contain valid day names: Mon Tue Wed Thu Fri Sat Sun" });
+    }
+
+    if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) {
+      return res.status(400).json({ error: "startTime and endTime must be in HH:MM format" });
+    }
+
     try {
       // Map day abbreviations to the next occurrence of that weekday
       // We generate entries for the next 90 days for the selected working days
@@ -159,6 +168,10 @@ router.post(
 
     if (!date) {
       return res.status(400).json({ error: "date is required (YYYY-MM-DD)" });
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: "date must be in YYYY-MM-DD format" });
     }
 
     try {

@@ -32,6 +32,10 @@ router.post("/broadcast", requireRole(["admin", "staff"]), async (req, res) => {
     return res.status(400).json({ error: "message is required" });
   }
 
+  if (message.length > 300) {
+    return res.status(400).json({ error: "message cannot exceed 300 characters" });
+  }
+
   try {
     let queryText;
 
