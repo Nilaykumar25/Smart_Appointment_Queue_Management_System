@@ -7,9 +7,29 @@ const router      = express.Router();
 const db          = require('../db/connection');
 const requireRole = require('../middleware/requireRole');
 
-// GET /api/queue/today
-// Returns all appointments for today with queue position and patient info
-// Called by: QueueDashboard.jsx every 30 seconds
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// REQ-7: GET /api/queue/today — Real-time queue position mapping
+// ═══════════════════════════════════════════════════════════════════════════════════════
+/**
+ * Queue Position Mapping Strategy:
+ *   - Each patient gets a queue position based on their appointment start time
+ *   - Position = count of all appointments with earlier start times for same doctor/date
+ *   - Patients remain in queue while status is "Booked" or "Arrived"
+ *   - Once marked "Completed" or "No-Show", they exit queue and others move up
+ *
+ * Real-time Updates:
+ *   - Staff calls this endpoint every 30 seconds (QueueDashboard polling)
+ *   - Position mapping recalculates based on current status of all appointments
+ *   - When a patient is marked "Attended" (Completed/No-Show):
+ *     * They are deleted from queue table
+ *     * All subsequent patients' positions shift down by 1
+ *     * Dashboard clients poll and receive updated positions
+ *
+ * Display Order in Staff UI:
+ *   - Ordered by queue_position (ascending)
+ *   - Patients with lower positions appear first
+ *   - Non-queued patients (Completed/No-Show) appear at end
+ */
 router.get('/today', requireRole(['admin', 'staff']), async (req, res) => {
   try {
     const { rows } = await db.query(

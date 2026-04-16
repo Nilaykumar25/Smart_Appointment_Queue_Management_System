@@ -301,4 +301,131 @@ router.get("/doctor/:doctorId", async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// REQ-9: Facility Operating Hours Configuration
+// ═══════════════════════════════════════════════════════════════════════════════════════
+/**
+ * Facility Hours Mapping Strategy:
+ *   - Each day of week (0=Mon, 1=Tue, ..., 6=Sun) has its own row
+ *   - Each row defines when the facility is open on that day
+ *   - is_operational flag: TRUE = open, FALSE = closed/holiday
+ *   - All doctor schedules must be nested within facility hours
+ *   - Example: If facility is 08:00-18:00, doctors can't have slots outside those bounds
+ *   - Admin configures facility hours via ScheduleConfigUI
+ */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/schedule/facility
+// Returns facility operating hours for all 7 days of the week
+// Called by: ScheduleConfigUI.jsx on page load
+// Response: Array of 7 objects (Mon-Sun) with operating hours
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/facility", requireRole(["admin", "staff"]), async (req, res) => {
+  try {
+    // Fetch facility config for all 7 days
+    // REQ-9: Facility Hours Mapping
+    //   - day_of_week 0 = Monday, 1 = Tuesday, ..., 6 = Sunday
+    //   - start_time = when facility opens
+    //   - end_time = when facility closes
+    //   - is_operational = TRUE if open, FALSE if closed
+    const { rows } = await db.query(
+      `SELECT
+         config_id        AS "configId",
+         day_of_week      AS "dayOfWeek",
+         TO_CHAR(start_time, 'HH24:MI') AS "startTime",
+         TO_CHAR(end_time,   'HH24:MI') AS "endTime",
+         is_operational   AS "isOperational"
+       FROM facility_config
+       ORDER BY day_of_week ASC`
+    );
+
+    // Map day numbers to names for clarity
+    const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const facilityCfg = rows.map((row) => ({
+      ...row,
+      dayName: dayNames[row.dayOfWeek],
+    }));
+
+    res.json({
+      message: "Facility config fetched successfully",
+      facilityHours: facilityCfg,
+    });
+  } catch (err) {
+    console.error("GET /schedule/facility error:", err);
+    res.status(500).json({ error: "Failed to fetch facility config" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/schedule/facility/:dayOfWeek
+// Update facility operating hours for a specific day
+// Body: { startTime: 'HH:MM', endTime: 'HH:MM', isOperational: boolean }
+// Called by: ScheduleConfigUI.jsx when admin configures facility hours
+// ─────────────────────────────────────────────────────────────────────────────
+router.patch(
+  "/facility/:dayOfWeek",
+  requireRole(["admin"]),
+  auditMiddleware("FACILITY_CONFIG"),
+  async (req, res) => {
+    const { dayOfWeek } = req.params;
+    const { startTime, endTime, isOperational } = req.body;
+
+    // Validate day_of_week (0-6)
+    const dayNum = parseInt(dayOfWeek);
+    if (isNaN(dayNum) || dayNum < 0 || dayNum > 6) {
+      return res.status(400).json({ error: "dayOfWeek must be 0-6 (Monday-Sunday)" });
+    }
+
+    // REQ-9: Facility Hours Validation
+    //   - Both start and end times required when facility is operational
+    //   - Start time must be before end time
+    if (isOperational === true) {
+      if (!startTime || !endTime) {
+        return res.status(400).json({
+          error: "startTime and endTime are required when facility is operational",
+        });
+      }
+      if (startTime >= endTime) {
+        return res.status(400).json({
+          error: "startTime must be before endTime",
+        });
+      }
+    }
+
+    try {
+      // REQ-9: Update facility hours mapping
+      //   - Updates the specific day's operating hours
+      //   - If isOperational=false, times are irrelevant but stored for reference
+      const { rows } = await db.query(
+        `UPDATE facility_config
+         SET start_time     = $2,
+             end_time       = $3,
+             is_operational = $4,
+             updated_at     = NOW()
+         WHERE day_of_week = $1
+         RETURNING *`,
+        [dayNum, startTime || "00:00", endTime || "00:00", isOperational]
+      );
+
+      if (rows.length === 0) {
+        return res.status(404).json({ error: "Facility config not found for that day" });
+      }
+
+      const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+      res.json({
+        message: `${dayNames[dayNum]} facility hours updated successfully`,
+        updated: {
+          dayOfWeek: rows[0].day_of_week,
+          startTime: rows[0].start_time,
+          endTime: rows[0].end_time,
+          isOperational: rows[0].is_operational,
+        },
+      });
+    } catch (err) {
+      console.error("PATCH /schedule/facility/:dayOfWeek error:", err);
+      res.status(500).json({ error: "Failed to update facility config" });
+    }
+  }
+);
+
 module.exports = router;

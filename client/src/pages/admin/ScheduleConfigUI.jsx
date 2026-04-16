@@ -2,6 +2,24 @@
 // Implements: REQ-10 — see SRS Section 4.4 (Blackout Dates)
 // Implements: REQ-11 — see SRS Section 4.4 (Open/Close Slots)
 
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// REQ-9: Facility Operating Hours Configuration
+// ═══════════════════════════════════════════════════════════════════════════════════════
+/**
+ * Facility Hours Mapping:
+ *   - Facility has operating hours for each day of the week (Monday-Sunday)
+ *   - Admin can define different hours for different days
+ *   - Example: Mon-Fri 09:00-17:00, Sat-Sun closed
+ *   - All doctor schedules must be nested within facility hours
+ *   - Patients cannot book appointments outside facility hours
+ *
+ * Implementation:
+ *   - FacilitySection: UI for configuring facility hours
+ *   - Displays all 7 days of the week
+ *   - Each day can be marked as operational or closed
+ *   - Start/end times configured per day
+ */
+
 import { useState, useEffect } from 'react';
 import { apiCall } from '../../services/api';
 import './ScheduleConfigUI.css';
@@ -360,7 +378,216 @@ function BlackoutSection({ initialDates }) {
 }
 
 // ---------------------------------------------------------------------------
-// Section C — Emergency Slot Open/Close (REQ-11)
+// Section C — Facility Operating Hours (REQ-9)
+// ---------------------------------------------------------------------------
+/**
+ * REQ-9 Implementation: Facility Hours Configuration
+ * 
+ * Facility Hours Mapping:
+ *   - dayOfWeek: 0=Monday, 1=Tuesday, ..., 6=Sunday
+ *   - startTime: When facility opens (e.g., "09:00")
+ *   - endTime: When facility closes (e.g., "17:00")
+ *   - isOperational: TRUE = open, FALSE = closed
+ *
+ * User Interaction:
+ *   1. Admin opens ScheduleConfigUI
+ *   2. Sees Facility Hours section with all 7 days
+ *   3. For each day, can:
+ *      - Toggle "Operational" checkbox
+ *      - Set start/end times if operational
+ *   4. Changes saved to backend via PATCH /schedule/facility/:dayOfWeek
+ *
+ * Validation:
+ *   - If operational=true, start_time must be before end_time
+ *   - Both times required when operational
+ *   - Can be closed by setting is_operational=false
+ */
+function FacilitySection() {
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const [facilityHours, setFacilityHours] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [savingDay, setSavingDay] = useState(null);
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState('');
+
+  // Load facility hours on mount
+  useEffect(() => {
+    async function loadFacilityHours() {
+      try {
+        const data = await apiCall('/schedule/facility');
+        setFacilityHours(data.facilityHours || []);
+      } catch {
+        // Initialize with default mock data if not available
+        setFacilityHours(dayNames.map((name, idx) => ({
+          dayOfWeek: idx,
+          dayName: name,
+          startTime: '09:00',
+          endTime: '17:00',
+          isOperational: idx < 5, // Mon-Fri open, Sat-Sun closed
+        })));
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadFacilityHours();
+  }, []);
+
+  async function handleSaveFacilityDay(dayOfWeek, startTime, endTime, isOperational) {
+    setSavingDay(dayOfWeek);
+    setSaveError('');
+    setSaveSuccess('');
+
+    // Validation
+    if (isOperational && (!startTime || !endTime)) {
+      setSaveError('Start and end times are required for operational days');
+      setSavingDay(null);
+      return;
+    }
+    if (isOperational && startTime >= endTime) {
+      setSaveError('Start time must be before end time');
+      setSavingDay(null);
+      return;
+    }
+
+    try {
+      // REQ-9: Save facility hours for specific day
+      // Maps dayOfWeek (0-6) to backend facility_config table
+      const response = await apiCall(`/schedule/facility/${dayOfWeek}`, {
+        method: 'PATCH',
+        body: { startTime, endTime, isOperational },
+      });
+
+      // Update local state
+      setFacilityHours((prev) =>
+        prev.map((h) =>
+          h.dayOfWeek === dayOfWeek
+            ? { ...h, startTime, endTime, isOperational }
+            : h
+        )
+      );
+
+      setSaveSuccess(`✅ ${dayNames[dayOfWeek]} facility hours updated`);
+      setTimeout(() => setSaveSuccess(''), 3000);
+    } catch (err) {
+      setSaveError(`Failed to save ${dayNames[dayOfWeek]} hours: ${err.message}`);
+    } finally {
+      setSavingDay(null);
+    }
+  }
+
+  if (loading) return <div className="card"><div className="card-body">Loading facility hours...</div></div>;
+
+  return (
+    <div className="card">
+      <div className="card-header">🏥 Facility Operating Hours (REQ-9)</div>
+      <div className="card-body p-4">
+        <p className="text-muted mb-4" style={{ fontSize: '0.9rem' }}>
+          Configure the facility's daily operating hours. All doctor schedules must be within these bounds.
+        </p>
+
+        {saveError && <div className="alert alert-danger py-2 mb-3">{saveError}</div>}
+        {saveSuccess && <div className="alert alert-success py-2 mb-3">{saveSuccess}</div>}
+
+        {/* REQ-9: Display facility hours for each day */}
+        {/* Mapping: dayOfWeek 0-6 = Monday-Sunday */}
+        <div className="facility-hours-grid">
+          {facilityHours.map((day) => (
+            <FacilityDayConfig
+              key={day.dayOfWeek}
+              day={day}
+              saving={savingDay === day.dayOfWeek}
+              onSave={handleSaveFacilityDay}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * REQ-9: Single day configuration component
+ * Handles editing start/end times and operational status for one day
+ */
+function FacilityDayConfig({ day, saving, onSave }) {
+  const [isOperational, setIsOperational] = useState(day.isOperational);
+  const [startTime, setStartTime] = useState(day.startTime);
+  const [endTime, setEndTime] = useState(day.endTime);
+
+  return (
+    <div className="facility-day-card">
+      <div className="facility-day-header">
+        <h5 className="mb-0">{day.dayName}</h5>
+        <label className="form-check-label ms-auto">
+          <input
+            type="checkbox"
+            className="form-check-input"
+            checked={isOperational}
+            onChange={(e) => setIsOperational(e.target.checked)}
+            disabled={saving}
+          />
+          <span className="ms-2">{isOperational ? '✅ Open' : '❌ Closed'}</span>
+        </label>
+      </div>
+
+      {isOperational && (
+        <div className="facility-day-body">
+          <div className="row g-2 mb-3">
+            <div className="col-6">
+              <label className="form-label small">Opens</label>
+              <input
+                type="time"
+                className="form-control form-control-sm"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="col-6">
+              <label className="form-label small">Closes</label>
+              <input
+                type="time"
+                className="form-control form-control-sm"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                disabled={saving}
+              />
+            </div>
+          </div>
+
+          <button
+            className="btn btn-sm btn-primary w-100"
+            disabled={saving}
+            onClick={() => onSave(day.dayOfWeek, startTime, endTime, isOperational)}
+          >
+            {saving ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                Saving...
+              </>
+            ) : '💾 Save Hours'}
+          </button>
+        </div>
+      )}
+
+      {!isOperational && (
+        <div className="facility-day-closed">
+          <p className="text-muted mb-2">Facility closed on {day.dayName}</p>
+          <button
+            className="btn btn-sm btn-outline-success w-100"
+            disabled={saving}
+            onClick={() => onSave(day.dayOfWeek, '09:00', '17:00', true)}
+          >
+            ✅ Open This Day
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section D — Emergency Slot Open/Close (REQ-11)
 // ---------------------------------------------------------------------------
 function SlotSection({ doctors }) {
   const [selectedDoctorId, setSelectedDoctorId] = useState(doctors[0]?.doctorId ?? '');
@@ -528,8 +755,14 @@ function ScheduleConfigUI() {
   return (
     <div className="schedule-page">
       <h2>Schedule Configuration</h2>
+      {/* REQ-9: Facility Hours Configuration */}
+      {/* Allows admin to set facility operating hours for each day */}
+      <FacilitySection />
+      {/* REQ-9 per-doctor level schedules */}
       <ScheduleSection doctors={config.doctors} schedules={config.schedules} />
+      {/* REQ-10: Blackout Dates Management */}
       <BlackoutSection initialDates={config.blackoutDates} />
+      {/* REQ-11: Emergency Slot Management */}
       <SlotSection doctors={config.doctors} />
     </div>
   );

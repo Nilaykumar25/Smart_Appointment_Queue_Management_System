@@ -47,3 +47,120 @@
   font-size: 0.875rem;
   margin-top: 8px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+/* REQ-9: Facility Operating Hours Styling */
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Facility Hours Grid: Displays all 7 days of the week
+ * Each day has its own card showing:
+ *   - Day name (Monday-Sunday)
+ *   - Operational checkbox (Open/Closed toggle)
+ *   - Start/End times (if operational)
+ *   - Save button
+ *
+ * Responsive layout:
+ *   - Desktop: 4 columns grid (2 rows)
+ *   - Tablet: 3 columns grid
+ *   - Mobile: 2 columns grid
+ */
+.facility-hours-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 0;
+}
+
+/**
+ * Facility Day Card: Individual day configuration container
+ * Layout:
+ *   - Header: Day name + Operational checkbox
+ *   - Body: Start/End time inputs (if operational)
+ *   - Footer: Save or Open button
+ */
+.facility-day-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 16px;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.facility-day-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
+}
+
+/* Facility Day Header: Day name + toggle checkbox */
+.facility-day-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.facility-day-header h5 {
+  margin: 0;
+  color: #2d3748;
+  font-size: 0.95rem;
+}
+
+.facility-day-header .form-check-input {
+  width: 18px;
+  height: 18px;
+  margin-top: 0;
+}
+
+.facility-day-header .form-check-label {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+/* Facility Day Body: Time inputs when operational */
+.facility-day-body {
+  padding: 12px 0;
+}
+
+.facility-day-body .form-label {
+  color: #4a5568;
+  margin-bottom: 4px;
+}
+
+.facility-day-body .form-control-sm {
+  padding: 6px 8px;
+  font-size: 0.875rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+}
+
+.facility-day-body .form-control-sm:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Facility Day Closed: Message when day is closed */
+.facility-day-closed {
+  padding: 12px 0;
+  text-align: center;
+}
+
+.facility-day-closed p {
+  margin: 0 0 12px 0;
+}
+
+.facility-day-closed .btn {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+/* Button styling in facility cards */
+.facility-day-card .btn-primary,
+.facility-day-card .btn-outline-success {
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 4px;
+}

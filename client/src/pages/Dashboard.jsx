@@ -156,7 +156,22 @@ const Dashboard = () => {
   };
 
   /**
-   * loadQueueData — reads live queue info from localStorage.
+   * REQ-7: loadQueueData — reads live queue info from localStorage
+   * 
+   * Queue Position Mapping:
+   *   - queuePosition: Patient's place in clinic queue (1 = next to be attended)
+   *   - Position updates in real-time as staff marks other patients as attended
+   *   - Lower position number = shorter wait time
+   *   - Position recalculated server-side when patients complete their appointments
+   *
+   * Data Flow for Real-time Updates:
+   *   1. Patient is in queue with position N (e.g., position 5)
+   *   2. Staff marks another patient (position 4) as "Completed"
+   *   3. Server removes position 4 and shifts all higher positions down
+   *   4. Dashboard polling (5-second interval) fetches updated data
+   *   5. Patient sees position updated from 5 → 4
+   *   6. Wait time also updates: 5*10min = 50min → 4*10min = 40min
+   *
    * REQ-7: sets queuePosition  |  REQ-8: sets estimatedWaitTime
    * REQ-14: called by the debounced polling interval above.
    */
@@ -165,9 +180,9 @@ const Dashboard = () => {
       const raw = localStorage.getItem('userQueueData');
       if (raw) {
         const queue = JSON.parse(raw);
-        // REQ-7: current position in clinic queue
+        // REQ-7: current position in clinic queue (1-indexed, lower = closer to attending)
         setQueuePosition(queue.position ?? null);
-        // REQ-8: estimated wait time in minutes
+        // REQ-8: estimated wait time in minutes (calculated from position × 10 minutes)
         setEstimatedWaitTime(queue.estimatedWaitTime ?? null);
         setIsInQueue(queue.position != null);
       } else {
@@ -442,7 +457,21 @@ const Dashboard = () => {
             </div>
 
             {/* ── MODULE 2: QUEUE STATUS ────────────────────────────────── */}
-            {/* REQ-7 & REQ-8: Live position + estimated wait time           */}
+            {/* REQ-7: Queue Position Display & Real-time Updates           */}
+            {/* REQ-8: Estimated Wait Time Calculation                       */}
+            {/*                                                               */}
+            {/* Queue Position Mapping:                                     */}
+            {/*   - queuePosition: Patient's place in queue (1 = next)      */}
+            {/*   - Updates every 5 seconds via debounced polling            */}
+            {/*   - Position decreases as staff marks patients as attended  */}
+            {/*   - Wait time = position × 10 minutes                       */}
+            {/*                                                               */}
+            {/* Real-time Flow:                                              */}
+            {/*   1. Patient is position 5 (wait time 50 min)               */}
+            {/*   2. Staff marks patient at position 4 as "Completed"      */}
+            {/*   3. Server deletes position 4 and shifts others down      */}
+            {/*   4. Patient's position auto-updates to 4 (wait time 40 min) */}
+            {/*   5. Process repeats as each patient completes              */}
             <div className="dashboard-card">
               <h2>📍 Your Queue Status</h2>
 
@@ -450,13 +479,15 @@ const Dashboard = () => {
                 /* Active queue: show position and wait time */
                 <div className="queue-status-details">
                   <div className="queue-info-container">
-                    {/* REQ-7: Queue position number */}
+                    {/* REQ-7: Queue position number - updates in real-time */}
+                    {/* Lower numbers mean closer to being attended */}
                     <div className="queue-info-item">
                       <span className="queue-label">Your Position</span>
                       <span className="queue-value"># {queuePosition}</span>
                     </div>
 
                     {/* REQ-8: Estimated wait time in minutes */}
+                    {/* Calculated from: position × 10 minutes per slot */}
                     <div className="queue-info-item">
                       <span className="queue-label">Estimated Wait</span>
                       <span className="queue-value">

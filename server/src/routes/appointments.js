@@ -168,7 +168,80 @@ router.get('/queue/:patientId', async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// REQ-7: Helper function to recalculate queue positions for all remaining patients
+// ═══════════════════════════════════════════════════════════════════════════════════════
+/**
+ * recalculateQueuePositions — Updates position mapping for all patients still in queue
+ *
+ * Queue Position Mapping Logic:
+ *   - When a patient is marked as "Completed" or "No-Show", they are removed from queue
+ *   - All remaining patients in the same doctor's queue for the same day must shift up
+ *   - Position = Current patient count ahead + 1
+ *   - Example: If patient at position 3 is removed, positions 4,5,6 become 3,4,5
+ *
+ * Algorithm:
+ *   1. Get the completed appointment's doctor_id and date
+ *   2. Find all queue entries for same doctor/date with status "Booked" or "Arrived"
+ *   3. Sort by start_time (earliest appointments are higher in queue)
+ *   4. Reassign positions: 1st = position 1, 2nd = position 2, etc.
+ *   5. Update estimated wait time based on new position (position × 10 minutes)
+ *
+ * @param {Client} client - Database client with active transaction
+ * @param {string} appointmentId - Appointment that was completed/no-show
+ */
+async function recalculateQueuePositions(client, appointmentId) {
+  try {
+    // Step 1: Get the completed appointment's doctor and date
+    const { rows: apptInfo } = await client.query(
+      `SELECT a.doctor_id, s.date
+       FROM appointments a
+       JOIN schedules s ON s.schedule_id = a.schedule_id
+       WHERE a.appointment_id = $1`,
+      [appointmentId]
+    );
+
+    if (apptInfo.length === 0) return; // Appointment not found, skip recalculation
+
+    const { doctor_id, date } = apptInfo[0];
+
+    // Step 2 & 3: Get all remaining queue entries for this doctor/date, sorted by time
+    // Mapping: All appointments still in "Booked" or "Arrived" status remain in queue
+    const { rows: remainingQueue } = await client.query(
+      `SELECT q.queue_id, a.appointment_id, s.start_time
+       FROM queue q
+       JOIN appointments a ON a.appointment_id = q.appointment_id
+       JOIN schedules s ON s.schedule_id = a.schedule_id
+       WHERE a.doctor_id = $1
+         AND s.date = $2
+         AND a.status IN ('Booked', 'Arrived')
+       ORDER BY s.start_time ASC`,
+      [doctor_id, date]
+    );
+
+    // Step 4 & 5: Update each remaining queue entry with new position
+    // Recalculate: position = index + 1, wait_time = position * 10 minutes
+    for (let i = 0; i < remainingQueue.length; i++) {
+      const newPosition = i + 1; // Reindex from 1
+      const newWaitTime = newPosition * 10; // 10 minutes per position
+
+      await client.query(
+        `UPDATE queue
+         SET queue_position = $1, estimated_wait_time = $2
+         WHERE queue_id = $3`,
+        [newPosition, newWaitTime, remainingQueue[i].queue_id]
+      );
+    }
+
+    console.log(`[REQ-7] Queue recalculated for doctor ${doctor_id} on ${date}: ${remainingQueue.length} patients repositioned`);
+  } catch (err) {
+    console.error('[REQ-7] Error recalculating queue positions:', err);
+    // Don't throw — allow status update to complete even if recalculation fails
+  }
+}
+
 // Implements: REQ-12 --- see SRS Section 3.12
+// Implements: REQ-7  --- see SRS Section 4.3 (Real-time queue position updates)
 // PATCH /appointments/:id/status
 router.patch('/:id/status', async (req, res) => {
   const { id } = req.params;
@@ -193,12 +266,17 @@ router.patch('/:id/status', async (req, res) => {
       return res.status(404).json({ error: 'Appointment not found' });
     }
 
-    // Remove from queue if completed or no-show
+    // REQ-7: Remove from queue and recalculate positions for remaining patients
+    // Queue position mapping: When a patient is removed, all subsequent positions shift up by 1
     if (['Completed', 'No-Show'].includes(status)) {
       await client.query(
         `DELETE FROM queue WHERE appointment_id = $1`,
         [id]
       );
+
+      // REQ-7: Recalculate queue positions for all other patients in queue
+      // This ensures real-time position updates as staff marks patients as attended
+      await recalculateQueuePositions(client, id);
     }
 
     await client.query('COMMIT');

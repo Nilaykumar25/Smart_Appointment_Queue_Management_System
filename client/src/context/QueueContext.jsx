@@ -1,3 +1,21 @@
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// REQ-7: Queue Management Context — Real-time position tracking
+// ═══════════════════════════════════════════════════════════════════════════════════════
+/**
+ * Queue Position Mapping:
+ *   - queuePosition field represents patient's place in doctor's queue
+ *   - Lower numbers = closer to being attended
+ *   - Positions recalculate when staff marks patients as "Attended" or "Completed"
+ *   - Context syncs with QueueDashboard updates via localStorage or API polling
+ *
+ * Status Mapping for Queue Inclusion:
+ *   - "Booked"           → In queue (waiting to arrive)
+ *   - "Arrived"          → In queue (physically present)
+ *   - "In-Consultation"  → In queue but being attended
+ *   - "Completed"        → Removed from queue (attended)
+ *   - "No-Show"          → Removed from queue (didn't show up)
+ */
+
 // Shared queue state — allows ReportsPage to reflect live changes from QueueDashboard
 // TODO: Remove this context when backend is connected — both pages will read from the server directly
 
@@ -16,6 +34,11 @@ const QueueContext = createContext(null);
 export function QueueProvider({ children }) {
   const [patients, setPatients] = useState([]);
 
+  /**
+   * updateStatus — Updates a single patient's status in the queue
+   * REQ-7 Mapping: When status changes to "Completed" or "No-Show",
+   * server automatically recalculates positions for remaining patients
+   */
   const updateStatus = useCallback((appointmentId, newStatus) => {
     setPatients((prev) =>
       prev.map((p) =>
@@ -24,6 +47,10 @@ export function QueueProvider({ children }) {
     );
   }, []);
 
+  /**
+   * resetPatients — Replaces entire queue with new list from server
+   * Called after server recalculates positions (when a patient is marked as attended)
+   */
   const resetPatients = useCallback((newList) => {
     setPatients(newList);
   }, []);
