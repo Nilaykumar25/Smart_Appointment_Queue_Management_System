@@ -21,7 +21,7 @@ router.get('/all', requireRole(['admin', 'staff']), async (req, res) => {
        JOIN users u     ON u.user_id     = a.patient_id
        JOIN doctors d   ON d.doctor_id   = a.doctor_id
        JOIN schedules s ON s.schedule_id = a.schedule_id
-       WHERE s.date >= CURRENT_DATE
+       WHERE DATE(s.date AT TIME ZONE 'Asia/Kolkata') >= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')::date
          AND a.status NOT IN ('Completed', 'No-Show')
        ORDER BY s.date ASC, s.start_time ASC`
     );

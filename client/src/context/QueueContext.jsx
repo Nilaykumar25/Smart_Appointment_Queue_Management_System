@@ -17,17 +17,8 @@
  */
 
 // Shared queue state — allows ReportsPage to reflect live changes from QueueDashboard
-// TODO: Remove this context when backend is connected — both pages will read from the server directly
 
 import { createContext, useContext, useState, useCallback } from 'react';
-
-const INITIAL_PATIENTS = [
-  { appointmentId: 'A001', patientName: 'Rahul Sharma',  queuePosition: 1, scheduledTime: '10:00 AM', status: 'Booked'          },
-  { appointmentId: 'A002', patientName: 'Priya Singh',   queuePosition: 2, scheduledTime: '10:15 AM', status: 'Arrived'         },
-  { appointmentId: 'A003', patientName: 'Amit Verma',    queuePosition: 3, scheduledTime: '10:30 AM', status: 'In-Consultation' },
-  { appointmentId: 'A004', patientName: 'Sneha Patel',   queuePosition: 4, scheduledTime: '10:45 AM', status: 'Completed'       },
-  { appointmentId: 'A005', patientName: 'Rohan Das',     queuePosition: 5, scheduledTime: '11:00 AM', status: 'No-Show'         },
-];
 
 const QueueContext = createContext(null);
 
@@ -56,16 +47,36 @@ export function QueueProvider({ children }) {
   }, []);
 
   // Derived report stats computed live from current patient states
+  const d = new Date();
   const liveReport = {
-    date:                   new Date().toISOString().split('T')[0],
+    date: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,
     totalPatientsSeen:      patients.filter((p) => p.status === 'Completed').length,
     totalNoShows:           patients.filter((p) => p.status === 'No-Show').length,
-    totalCancellations:     0, // no cancellation flow in frontend yet
-    averageWaitTimeMinutes: 18, // static until backend provides real data
+    totalCancellations:     0,
+    totalBooked:            patients.filter((p) => p.status === 'Booked').length,
+    totalArrived:           patients.filter((p) => p.status === 'Arrived').length,
+    totalInConsultation:    patients.filter((p) => p.status === 'In-Consultation').length,
+    totalAppointments:      patients.length,
+    averageWaitTimeMinutes: 0,
   };
 
+  const reorderPatients = useCallback((appointmentId, direction) => {
+    setPatients((prev) => {
+      const idx = prev.findIndex((p) => p.appointmentId === appointmentId);
+      if (idx === -1) return prev;
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= prev.length) return prev;
+
+      const next = [...prev];
+      // Swap the two rows
+      [next[idx], next[swapIdx]] = [next[swapIdx], next[idx]];
+      // Reassign queuePosition numbers to match new order
+      return next.map((p, i) => ({ ...p, queuePosition: i + 1 }));
+    });
+  }, []);
+
   return (
-    <QueueContext.Provider value={{ patients, updateStatus, resetPatients, liveReport }}>
+    <QueueContext.Provider value={{ patients, updateStatus, resetPatients, reorderPatients, liveReport }}>
       {children}
     </QueueContext.Provider>
   );

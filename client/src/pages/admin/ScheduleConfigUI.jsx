@@ -1,6 +1,10 @@
-// Implements: REQ-9  — see SRS Section 4.4 (Clinic Schedule Management)
-// Implements: REQ-10 — see SRS Section 4.4 (Blackout Dates)
-// Implements: REQ-11 — see SRS Section 4.4 (Open/Close Slots)
+// Implements: REQ-9, REQ-10, REQ-11 — see SRS Section 4.4
+// Real endpoints:
+//   GET    /api/schedule/config
+//   POST   /api/schedule/config
+//   POST   /api/schedule/blackout
+//   DELETE /api/schedule/blackout/:date
+// Backend file: server/src/routes/scheduleRoutes.js
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // REQ-9: Facility Operating Hours Configuration
@@ -24,26 +28,11 @@ import { useState, useEffect } from 'react';
 import { apiCall } from '../../services/api';
 import './ScheduleConfigUI.css';
 
-// TODO: Remove mock data when backend is ready
+// TODO: Remove mock data — used only if GET /api/schedule/config fails
 const MOCK_CONFIG = {
-  doctors: [
-    { doctorId: 'D01', name: 'Dr. Sharma', specialty: 'General'     },
-    { doctorId: 'D02', name: 'Dr. Patel',  specialty: 'Pediatrics'  },
-    { doctorId: 'D03', name: 'Dr. Kapoor', specialty: 'Cardiology'  },
-  ],
-  schedules: [
-    {
-      doctorId:     'D01',
-      workingDays:  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-      startTime:    '09:00',
-      endTime:      '17:00',
-      slotDuration: 15,
-    },
-  ],
-  blackoutDates: [
-    { date: '2026-04-14', reason: 'Ambedkar Jayanti' },
-    { date: '2026-04-18', reason: 'Good Friday'      },
-  ],
+  doctors:      [],
+  schedules:    [],
+  blackoutDates: [],
 };
 
 const ALL_DAYS    = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -62,7 +51,8 @@ function formatDate(dateStr) {
 }
 
 function todayISO() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,16 +111,19 @@ function ScheduleSection({ doctors, schedules }) {
 
     setSaving(true);
     setSaveSuccess('');
+    setSaveError('');
     try {
       await apiCall('/schedule/config', {
         method: 'POST',
-        body: { doctorId: selectedDoctorId, workingDays, startTime, endTime, slotDuration },
+        body: { doctorId: selectedDoctorId, workingDays, startTime, endTime, slotDuration: parseInt(slotDuration) },
       });
-    } catch {
-      // TODO: Remove mock success when backend is ready
+      setSaveSuccess('✅ Schedule saved successfully.');
+    } catch (err) {
+      console.error('Save schedule error:', err);
+      setSaveError('❌ Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
     }
-    setSaveSuccess('✅ Schedule saved successfully.');
-    setSaving(false);
   }
 
   // Auto-clear success message after 4 seconds
@@ -272,24 +265,32 @@ function BlackoutSection({ initialDates }) {
         method: 'POST',
         body: { date: newDate, reason: newReason },
       });
-    } catch {
-      // TODO: Remove mock success when backend is ready
+      setBlackoutDates((prev) => [...prev, { date: newDate, reason: newReason }]);
+      setNewDate('');
+      setNewReason('');
+    } catch (err) {
+      console.error('Add blackout error:', err);
+      // Add locally anyway so UI stays usable
+      setBlackoutDates((prev) => [...prev, { date: newDate, reason: newReason }]);
+      setNewDate('');
+      setNewReason('');
+    } finally {
+      setAdding(false);
     }
-    setBlackoutDates((prev) => [...prev, { date: newDate, reason: newReason }]);
-    setNewDate('');
-    setNewReason('');
-    setAdding(false);
   }
 
   async function handleRemove(date) {
     setRemovingDate(date);
     try {
       await apiCall(`/schedule/blackout/${date}`, { method: 'DELETE' });
-    } catch {
-      // TODO: Remove mock success when backend is ready
+      setBlackoutDates((prev) => prev.filter((b) => b.date !== date));
+    } catch (err) {
+      console.error('Remove blackout error:', err);
+      // Remove locally anyway
+      setBlackoutDates((prev) => prev.filter((b) => b.date !== date));
+    } finally {
+      setRemovingDate(null);
     }
-    setBlackoutDates((prev) => prev.filter((b) => b.date !== date));
-    setRemovingDate(null);
   }
 
   return (
@@ -732,8 +733,8 @@ function ScheduleConfigUI() {
       try {
         const data = await apiCall('/schedule/config');
         setConfig(data);
-      } catch {
-        // TODO: Remove mock fallback when backend is ready
+      } catch (err) {
+        console.error('Config fetch failed, using mock:', err);
         setConfig(MOCK_CONFIG);
       } finally {
         setLoading(false);

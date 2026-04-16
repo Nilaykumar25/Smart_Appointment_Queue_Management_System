@@ -16,6 +16,12 @@ const auditLog = async ({
   userAgent,
 }) => {
   try {
+    // Skip audit if userId is not a valid UUID (e.g. "unknown" from unauthenticated requests)
+    if (!userId || userId === 'unknown' || !/^[0-9a-f-]{36}$/i.test(userId)) {
+      console.warn('[AUDIT] Skipped — no valid userId:', userId, action);
+      return;
+    }
+
     await db.query(
       `INSERT INTO audit_logs
          (user_id, action, entity_type, entity_id, old_value, new_value, ip_address, user_agent)

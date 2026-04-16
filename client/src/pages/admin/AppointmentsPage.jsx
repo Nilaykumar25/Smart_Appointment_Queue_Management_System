@@ -1,4 +1,4 @@
-// Implements: Admin view of all upcoming appointments from the database
+// Implements: REQ-7 — see SRS Section 4.3 (Admin view of all appointments)
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiCall } from '../../services/api';

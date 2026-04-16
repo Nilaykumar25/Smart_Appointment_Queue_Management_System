@@ -2,24 +2,90 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .queue-header h2 {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #2d3748;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0F172A;
   margin: 0;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.025em;
 }
 
 .patient-count {
-  color: #718096;
+  color: #475569;
   font-size: 0.9rem;
   margin-top: 4px;
+  font-weight: 500;
 }
 
 .action-cell {
   display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.reorder-cell {
+  display: flex;
   gap: 4px;
   align-items: center;
+  justify-content: center;
+}
+
+.reorder-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.reorder-btn:not(:disabled):hover {
+  background: #2563EB;
+  border-color: #2563EB;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Table styling to match patient portal card aesthetic */
+.table {
+  background: white;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border: 2px solid #E2E8F0;
+}
+
+.table thead th {
+  background: #F8FAFC;
+  color: #0F172A;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #E2E8F0;
+  padding: 14px 16px;
+}
+
+.table tbody td {
+  padding: 14px 16px;
+  vertical-align: middle;
+  color: #0F172A;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.table tbody tr:hover {
+  background: #EFF6FF;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
 }

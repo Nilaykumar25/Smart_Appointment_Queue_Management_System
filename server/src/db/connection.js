@@ -5,6 +5,7 @@
 require("dotenv").config({ path: require("path").resolve(__dirname, "../../.env") });
 const { Pool } = require("pg");
 
+// Prefer DATABASE_URL (Supabase connection string) if set, otherwise use individual vars
 const pool = new Pool(
   process.env.DATABASE_URL
     ? {
@@ -13,13 +14,11 @@ const pool = new Pool(
       }
     : {
         host:     process.env.DB_HOST     || "localhost",
-        port:     parseInt(process.env.DB_PORT) || 5432,
+        port:     parseInt(process.env.DB_PORT) || 6543,
         database: process.env.DB_NAME     || "saqms_db",
         user:     process.env.DB_USER,
         password: process.env.DB_PASSWORD,
-        ssl: process.env.DB_HOST && process.env.DB_HOST.includes("supabase")
-          ? { rejectUnauthorized: false }
-          : false,
+        ssl:      { rejectUnauthorized: false }, // required for Supabase Session Pooler
       }
 );
 
@@ -28,6 +27,7 @@ pool.connect((err, client, release) => {
   if (err) {
     console.error("❌ Database connection failed:", err.message);
     console.error("   Check your .env file — DB_HOST, DB_USER, DB_PASSWORD, DB_NAME");
+    process.exit(1); // Cannot run without database
   } else {
     console.log("✅ Database connected successfully");
     release();
