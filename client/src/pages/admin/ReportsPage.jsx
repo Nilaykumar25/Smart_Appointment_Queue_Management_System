@@ -8,6 +8,8 @@ import { useQueue } from '../../context/QueueContext';
 import Toast from '../../components/common/Toast';
 import './ReportsPage.css';
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 // Get today's date in local timezone (not UTC) to avoid IST offset issues
 function getLocalToday() {
   const d = new Date();
@@ -68,7 +70,7 @@ function ReportsPage() {
 
     try {
       const token = localStorage.getItem('saqms_token');
-      const url   = `http://localhost:5000/api/reports/daily?date=${date}&format=${format}`;
+      const url   = `${BASE_URL}/reports/daily?date=${date}&format=${format}`;
 
       if (ispdf) {
         const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' });

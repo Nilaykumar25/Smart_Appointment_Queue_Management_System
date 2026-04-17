@@ -25,9 +25,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getToken } from '../services/auth';
 import RescheduleCancel from '../components/RescheduleCancel';
 // REQ-14: Debounce utility prevents excessive queue-refresh calls during polling
 import { debounce } from '../utils/debounce';
+
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const Dashboard = () => {
   // ── Auth context ──────────────────────────────────────────────────────────
@@ -102,7 +105,7 @@ const Dashboard = () => {
       try {
         const token = localStorage.getItem('saqms_token');
         if (!token) return;
-        const res = await fetch('http://localhost:5000/api/notifications/my', {
+        const res = await fetch(`${BASE_URL}/notifications/my`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) return;
@@ -123,9 +126,31 @@ const Dashboard = () => {
     try {
       const raw = localStorage.getItem('userAppointments');
       if (raw) {
-        const appointments = JSON.parse(raw);
-        setUpcomingAppointments(appointments);
-        setTotalAppointments(appointments.length);
+        const allAppointments = JSON.parse(raw);
+        
+        // Filter to show only future appointments (including date and time)
+        const now = new Date();
+        
+        const futureAppointments = allAppointments
+          .filter(appointment => {
+            // Combine date and time to create full appointment datetime
+            const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
+            return appointmentDateTime > now;
+          })
+          .sort((a, b) => {
+            // Sort by date and time (earliest first)
+            const dateA = new Date(`${a.date}T${a.time}`);
+            const dateB = new Date(`${b.date}T${b.time}`);
+            return dateA - dateB;
+          });
+        
+        setUpcomingAppointments(futureAppointments);
+        setTotalAppointments(futureAppointments.length);
+        
+        // Load queue data for the most recent (next) appointment
+        if (futureAppointments.length > 0) {
+          loadQueueDataForAppointment(futureAppointments[0]);
+        }
       }
     } catch (err) {
       console.error('Error loading appointments:', err);
@@ -133,24 +158,104 @@ const Dashboard = () => {
   };
 
   /**
-   * REQ-7 & REQ-8: Load queue position and estimated wait time
+   * Load queue data for a specific appointment
    */
-  const loadQueueData = () => {
+  const loadQueueDataForAppointment = async (appointment) => {
     try {
-      const raw = localStorage.getItem('userQueueData');
-      if (raw) {
-        const queue = JSON.parse(raw);
-        setQueuePosition(queue.position ?? null);
-        setEstimatedWaitTime(queue.estimatedWaitTime ?? null);
-        setIsInQueue(queue.position != null);
+      if (!appointment?.appointment_id) {
+        setIsInQueue(false);
+        return;
+      }
+
+      // Fetch queue data from API for this specific appointment
+      const userId = user?.userId;
+      if (!userId) return;
+
+      const response = await fetch(`${BASE_URL}/appointments/queue/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const queueData = await response.json();
+        setQueuePosition(queueData.position ?? null);
+        setEstimatedWaitTime(queueData.estimated_wait_time ?? null);
+        setIsInQueue(queueData.position != null);
       } else {
         setQueuePosition(null);
         setEstimatedWaitTime(null);
         setIsInQueue(false);
       }
     } catch (err) {
-      console.error('Error loading queue data:', err);
+      console.error('Error loading queue data for appointment:', err);
       setIsInQueue(false);
+    }
+  };
+
+  /**
+   * REQ-7 & REQ-8: Load queue position and estimated wait time from database
+   */
+  const loadQueueData = async () => {
+    try {
+      const userId = user?.userId;
+      if (!userId) {
+        setIsInQueue(false);
+        return;
+      }
+
+      // Fetch queue data from API
+      const response = await fetch(`${BASE_URL}/appointments/queue/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const queueData = await response.json();
+        setQueuePosition(queueData.position ?? null);
+        setEstimatedWaitTime(queueData.estimated_wait_time ?? null);
+        setIsInQueue(queueData.position != null);
+        
+        // Also update localStorage for offline access
+        localStorage.setItem('userQueueData', JSON.stringify({
+          position: queueData.position,
+          estimatedWaitTime: queueData.estimated_wait_time
+        }));
+      } else if (response.status === 404) {
+        // Not in queue
+        setQueuePosition(null);
+        setEstimatedWaitTime(null);
+        setIsInQueue(false);
+        localStorage.removeItem('userQueueData');
+      } else {
+        // Fallback to localStorage if API fails
+        const raw = localStorage.getItem('userQueueData');
+        if (raw) {
+          const queue = JSON.parse(raw);
+          setQueuePosition(queue.position ?? null);
+          setEstimatedWaitTime(queue.estimatedWaitTime ?? null);
+          setIsInQueue(queue.position != null);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading queue data:', err);
+      // Fallback to localStorage on error
+      try {
+        const raw = localStorage.getItem('userQueueData');
+        if (raw) {
+          const queue = JSON.parse(raw);
+          setQueuePosition(queue.position ?? null);
+          setEstimatedWaitTime(queue.estimatedWaitTime ?? null);
+          setIsInQueue(queue.position != null);
+        } else {
+          setIsInQueue(false);
+        }
+      } catch {
+        setIsInQueue(false);
+      }
     }
   };
 
@@ -188,7 +293,7 @@ const Dashboard = () => {
   const handleCancelAppointmentFromModal = async (cancellationRecord) => {
     try {
       const token = localStorage.getItem('saqms_token');
-      await fetch(`http://localhost:5000/api/appointments/${cancellationRecord.appointmentId}`, {
+      await fetch(`${BASE_URL}/appointments/${cancellationRecord.appointmentId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

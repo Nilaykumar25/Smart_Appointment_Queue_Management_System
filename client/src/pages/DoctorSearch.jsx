@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { getToken } from '../services/auth';
 import '../styles/DoctorSearch.css';
 
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export default function DoctorSearch({ onSelectDoctor }) {
   const [doctors, setDoctors] = useState([]);
