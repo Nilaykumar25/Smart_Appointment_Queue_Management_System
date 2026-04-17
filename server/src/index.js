@@ -16,6 +16,7 @@ app.use(cors({
     "http://localhost:5174",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://*.vercel.app",  // Allow all Vercel preview deployments
   ],
   credentials: true,   // needed for httpOnly refresh token cookie
 }));

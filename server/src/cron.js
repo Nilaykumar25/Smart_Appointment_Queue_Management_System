@@ -27,8 +27,14 @@ cron.schedule('* * * * *', async () => {
       console.log('Auto-flagged no-show for appointment:', appt.appointment_id);
     }
   } catch (err) {
-    console.error('No-show cron error:', err);
+    // Only log error, don't crash the server
+    // Common errors: database connection timeout, DNS resolution
+    if (err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT') {
+      console.error('No-show cron: Database connection failed (will retry next minute)');
+    } else {
+      console.error('No-show cron error:', err.message);
+    }
   }
 });
 
-console.log('No-show cron job running...');
+console.log('✅ No-show cron job started (runs every minute)');

@@ -163,14 +163,19 @@ const Dashboard = () => {
   const loadQueueDataForAppointment = async (appointment) => {
     try {
       if (!appointment?.appointment_id) {
+        console.log('[Queue] No appointment_id found');
         setIsInQueue(false);
         return;
       }
 
       // Fetch queue data from API for this specific appointment
       const userId = user?.userId;
-      if (!userId) return;
+      if (!userId) {
+        console.log('[Queue] No userId found');
+        return;
+      }
 
+      console.log('[Queue] Fetching queue data for user:', userId);
       const response = await fetch(`${BASE_URL}/appointments/queue/${userId}`, {
         headers: {
           'Authorization': `Bearer ${getToken()}`,
@@ -178,18 +183,23 @@ const Dashboard = () => {
         }
       });
 
+      console.log('[Queue] Response status:', response.status);
+
       if (response.ok) {
         const queueData = await response.json();
+        console.log('[Queue] Queue data received:', queueData);
         setQueuePosition(queueData.position ?? null);
         setEstimatedWaitTime(queueData.estimated_wait_time ?? null);
         setIsInQueue(queueData.position != null);
       } else {
+        const errorText = await response.text();
+        console.log('[Queue] Error response:', errorText);
         setQueuePosition(null);
         setEstimatedWaitTime(null);
         setIsInQueue(false);
       }
     } catch (err) {
-      console.error('Error loading queue data for appointment:', err);
+      console.error('[Queue] Error loading queue data:', err);
       setIsInQueue(false);
     }
   };

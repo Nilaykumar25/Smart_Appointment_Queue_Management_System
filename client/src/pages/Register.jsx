@@ -76,8 +76,8 @@ const Register = () => {
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
     }
 
     // Password confirmation validation
@@ -104,13 +104,19 @@ const Register = () => {
       try {
         // Call register function from auth context
         // Creates new user account with name and email
-        await register(formData.name, formData.email, formData.password);
+        const result = await register(formData.name, formData.email, formData.password);
         
-        // Navigate to protected dashboard route
-        navigate('/dashboard');
+        if (result && result.success) {
+          // Navigate to protected dashboard route
+          navigate('/dashboard');
+        } else {
+          // Display specific error message from server
+          setAuthError(result?.message || 'Registration failed. Please try again.');
+        }
       } catch (err) {
         // Display registration error to user
-        setAuthError('Registration failed. Please try again or contact support.');
+        console.error('Registration error:', err);
+        setAuthError(err.message || 'Registration failed. Please try again or contact support.');
       }
     }
   };

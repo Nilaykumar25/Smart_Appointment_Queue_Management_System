@@ -70,7 +70,18 @@ router.post("/register", async (req, res) => {
     });
   } catch (err) {
     console.error("POST /auth/register error:", err);
-    return res.status(500).json({ error: "Internal server error" });
+    
+    // Handle duplicate email error (race condition - checked but still inserted)
+    if (err.code === '23505' && err.constraint === 'users_email_key') {
+      return res.status(409).json({ error: "Email already registered" });
+    }
+    
+    // Handle other database errors
+    if (err.code && err.code.startsWith('23')) {
+      return res.status(400).json({ error: "Invalid data provided" });
+    }
+    
+    return res.status(500).json({ error: "Registration failed. Please try again." });
   }
 });
 
