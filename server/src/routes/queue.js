@@ -8,38 +8,67 @@ const router      = express.Router();
 const db          = require('../db/connection');
 const requireRole = require('../middleware/requireRole');
 
+// Helper function to get current date in IST as YYYY-MM-DD
+function getTodayIST() {
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const istOffset = 5.5 * 60 * 60000; // IST is UTC+5:30
+  const istTime = new Date(utc + istOffset);
+  
+  const year = istTime.getFullYear();
+  const month = String(istTime.getMonth() + 1).padStart(2, '0');
+  const day = String(istTime.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+}
+
 // ─── Queue Position Mapping Strategy ─────────────────────────────────────────
 // - Each patient gets a queue position based on their appointment start time
 // - Position = count of all appointments with earlier start times for same doctor/date
 // - Patients remain in queue while status is "Booked" or "Arrived"
 // - Once marked "Completed" or "No-Show", they exit queue and others move up
-// - Staff dashboard polls every 30 seconds for real-time updates
+// - Staff dashboard polls every 30 seconds for real-time updates (today only)
+// - Enhanced to support viewing/managing queues for any date
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Helper: ensure all of today's active appointments have a queue entry
 // Called by GET /today so the queue self-heals if entries are missing
-async function ensureQueueEntries(client) {
+// Enhanced to support specific dates
+async function ensureQueueEntries(client, targetDate = null) {
+  // Default to today if no date specified
+  const dateCondition = targetDate 
+    ? `DATE(s.date) = $1`
+    : `DATE(s.date AT TIME ZONE 'Asia/Kolkata') = (NOW() AT TIME ZONE 'Asia/Kolkata')::date`;
+  
+  const queryParams = targetDate ? [targetDate] : [];
+
   const { rows: missing } = await client.query(
     `SELECT a.appointment_id
      FROM appointments a
      JOIN schedules s ON s.schedule_id = a.schedule_id
      LEFT JOIN queue q ON q.appointment_id = a.appointment_id
-     WHERE DATE(s.date AT TIME ZONE 'Asia/Kolkata') = (NOW() AT TIME ZONE 'Asia/Kolkata')::date
+     WHERE ${dateCondition}
        AND a.status NOT IN ('Completed', 'No-Show')
        AND q.queue_id IS NULL
-     ORDER BY s.start_time`
+     ORDER BY s.start_time`,
+    queryParams
   );
 
   if (missing.length === 0) return;
 
-  const { rows: maxRow } = await client.query(
-    `SELECT COALESCE(MAX(q.queue_position), 0) AS max_pos
-     FROM queue q
-     JOIN appointments a ON a.appointment_id = q.appointment_id
-     JOIN schedules s    ON s.schedule_id = a.schedule_id
-     WHERE DATE(s.date AT TIME ZONE 'Asia/Kolkata') = (NOW() AT TIME ZONE 'Asia/Kolkata')::date`
-  );
+  const maxPosQuery = targetDate
+    ? `SELECT COALESCE(MAX(q.queue_position), 0) AS max_pos
+       FROM queue q
+       JOIN appointments a ON a.appointment_id = q.appointment_id
+       JOIN schedules s    ON s.schedule_id = a.schedule_id
+       WHERE DATE(s.date) = $1`
+    : `SELECT COALESCE(MAX(q.queue_position), 0) AS max_pos
+       FROM queue q
+       JOIN appointments a ON a.appointment_id = q.appointment_id
+       JOIN schedules s    ON s.schedule_id = a.schedule_id
+       WHERE DATE(s.date AT TIME ZONE 'Asia/Kolkata') = (NOW() AT TIME ZONE 'Asia/Kolkata')::date`;
 
+  const { rows: maxRow } = await client.query(maxPosQuery, queryParams);
   let pos = parseInt(maxRow[0].max_pos);
 
   for (const row of missing) {
@@ -100,12 +129,74 @@ router.get('/today', requireRole(['admin', 'staff']), async (req, res) => {
   }
 });
 
+// GET /api/queue/date/:date
+// Returns all appointments for a specific date with queue position and patient info
+// Called by: QueueDashboard.jsx when viewing non-today dates
+router.get('/date/:date', requireRole(['admin', 'staff']), async (req, res) => {
+  const { date } = req.params;
+  
+  // Validate date format
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
+  }
+
+  const client = await db.getClient();
+  try {
+    // For non-today dates, we still ensure queue entries exist but don't auto-create them
+    // This allows viewing historical data without modifying it
+    // Use IST for date comparison
+    const todayIST = getTodayIST();
+    const isToday = date === todayIST;
+    
+    if (isToday) {
+      await ensureQueueEntries(client, date);
+    }
+
+    const { rows } = await client.query(
+      `SELECT
+         a.appointment_id  AS "appointmentId",
+         u.name            AS "patientName",
+         q.queue_position  AS "queuePosition",
+         TO_CHAR(s.start_time, 'HH24:MI') AS "scheduledTime",
+         a.status,
+         d.avg_consultation_duration AS "avgConsultationDuration",
+         -- REQ-8: Live wait = patients ahead × avg consultation duration
+         (
+           SELECT COUNT(*)
+           FROM queue q2
+           JOIN appointments a2 ON a2.appointment_id = q2.appointment_id
+           JOIN schedules s2    ON s2.schedule_id    = a2.schedule_id
+           WHERE a2.doctor_id = a.doctor_id
+             AND s2.date = s.date
+             AND s2.start_time < s.start_time
+             AND a2.status IN ('Booked', 'Arrived')
+         ) * COALESCE(d.avg_consultation_duration, 15) AS "estimatedWaitMinutes"
+       FROM appointments a
+       JOIN users u        ON u.user_id       = a.patient_id
+       JOIN schedules s    ON s.schedule_id   = a.schedule_id
+       JOIN doctors d      ON d.doctor_id     = a.doctor_id
+       LEFT JOIN queue q   ON q.appointment_id = a.appointment_id
+       WHERE DATE(s.date) = $1
+         AND a.status NOT IN ('Completed', 'No-Show')
+       ORDER BY COALESCE(q.queue_position, 9999), s.start_time`,
+      [date]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error(`GET /queue/date/${date} error:`, err);
+    res.status(500).json({ error: 'Failed to fetch queue for specified date' });
+  } finally {
+    client.release();
+  }
+});
+
 // PATCH /api/queue/reorder
 // Swap queue positions between two appointments
-// Body: { appointmentId, direction: 'up' | 'down' }
+// Body: { appointmentId, direction: 'up' | 'down', date?: 'YYYY-MM-DD' }
 // Called by: QueueDashboard.jsx ↑↓ buttons
 router.patch('/reorder', requireRole(['admin', 'staff']), async (req, res) => {
-  const { appointmentId, direction } = req.body;
+  const { appointmentId, direction, date } = req.body;
 
   if (!appointmentId || !['up', 'down'].includes(direction)) {
     return res.status(400).json({ error: 'appointmentId and direction (up|down) are required' });
@@ -115,8 +206,15 @@ router.patch('/reorder', requireRole(['admin', 'staff']), async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // Ensure queue entries exist before reordering
-    await ensureQueueEntries(client);
+    // Use provided date or default to today in IST
+    const todayIST = getTodayIST();
+    const targetDate = date || todayIST;
+    const isToday = targetDate === todayIST;
+
+    // Ensure queue entries exist before reordering (only for today)
+    if (isToday) {
+      await ensureQueueEntries(client);
+    }
 
     const { rows: current } = await client.query(
       `SELECT q.queue_id, q.queue_position
@@ -134,15 +232,16 @@ router.patch('/reorder', requireRole(['admin', 'staff']), async (req, res) => {
     const currentQueueId = current[0].queue_id;
     const targetPos      = direction === 'up' ? currentPos - 1 : currentPos + 1;
 
+    // Find target appointment for the specific date
     const { rows: target } = await client.query(
       `SELECT q.queue_id
        FROM queue q
        JOIN appointments a ON a.appointment_id = q.appointment_id
        JOIN schedules s    ON s.schedule_id = a.schedule_id
        WHERE q.queue_position = $1
-         AND DATE(s.date AT TIME ZONE 'Asia/Kolkata') = (NOW() AT TIME ZONE 'Asia/Kolkata')::date
+         AND DATE(s.date) = $2
          AND a.status NOT IN ('Completed', 'No-Show')`,
-      [targetPos]
+      [targetPos, targetDate]
     );
 
     if (target.length === 0) {

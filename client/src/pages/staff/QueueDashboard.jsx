@@ -2,11 +2,19 @@
 // Implements: REQ-12 — see SRS Section 4.5 (Appointment Status Management)
 // Implements: REQ-13 — see SRS Section 4.5 (No-Show Trigger)
 //
+// Enhanced Queue Dashboard Features:
+//   - View queue for any selected date (not just today)
+//   - Auto-refresh only for today's queue (every 30 seconds)
+//   - Date picker with shortcuts for Today/Tomorrow
+//   - Historical and future queue viewing
+//   - Status updates work for any date
+//   - Queue reordering works for any date
+//
 // Queue Position Mapping:
 //   - queuePosition = patient's place in queue for the day
 //   - Position 1 = first patient to be attended
 //   - When a patient is Completed/No-Show, they leave the queue
-//   - Dashboard polls /queue/today every 30 seconds for real-time updates
+//   - Dashboard polls /queue/today every 30 seconds for real-time updates (today only)
 //
 // Status Transitions:
 //   Booked → Arrived → In-Consultation → Completed (leaves queue)
@@ -16,7 +24,23 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiCall } from '../../services/api';
 import { useQueue } from '../../context/QueueContext';
 import StatusBadge from '../../components/common/StatusBadge';
+import { getTodayIST, getTomorrowIST, getDateIST, isToday, isTomorrow } from '../../utils/istDates';
 import './QueueDashboard.css';
+
+// Helper function to format date for display
+function formatDateForDisplay(dateStr) {
+  const date = new Date(dateStr + 'T00:00:00');
+  
+  if (isToday(dateStr)) return 'Today';
+  if (isTomorrow(dateStr)) return 'Tomorrow';
+  
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+  });
+}
 
 function ActionButtons({ patient, updatingId, onAction }) {
   const { appointmentId, status } = patient;
@@ -60,6 +84,7 @@ function ActionButtons({ patient, updatingId, onAction }) {
 
 function QueueDashboard() {
   const { patients, updateStatus, resetPatients, reorderPatients } = useQueue();
+  const [selectedDate, setSelectedDate] = useState(() => getTodayIST()); // Use IST for initial date
   const [initialLoad, setInitialLoad]   = useState(true);
   const [error, setError]               = useState('');
   const [updatingId, setUpdatingId]     = useState(null);
@@ -67,24 +92,43 @@ function QueueDashboard() {
   const [reorderError, setReorderError] = useState('');
 
   // REQ-7: Poll every 30 seconds for real-time queue position updates
+  // Enhanced to support any date, but only auto-refresh for today
   const fetchQueue = useCallback(async (isInitial = false) => {
     if (isInitial) setInitialLoad(true);
     setError('');
     try {
-      const data = await apiCall('/queue/today');
+      // Use date-specific endpoint if not today, otherwise use existing today endpoint
+      const todayIST = getTodayIST();
+      const isToday = selectedDate === todayIST;
+      const endpoint = isToday ? '/queue/today' : `/queue/date/${selectedDate}`;
+      const data = await apiCall(endpoint);
       resetPatients(data);
-    } catch {
+    } catch (err) {
+      console.error('Queue fetch error:', err);
+      setError('Failed to load queue data. Please try again.');
       // context holds existing data — no flicker on background refresh failure
     } finally {
       if (isInitial) setInitialLoad(false);
     }
-  }, [resetPatients]);
+  }, [resetPatients, selectedDate]);
 
   useEffect(() => {
     fetchQueue(true);
-    const interval = setInterval(() => fetchQueue(false), 30_000);
-    return () => clearInterval(interval);
-  }, [fetchQueue]);
+    
+    // Only auto-refresh for today's queue to avoid unnecessary API calls
+    const todayIST = getTodayIST();
+    const isToday = selectedDate === todayIST;
+    if (isToday) {
+      const interval = setInterval(() => fetchQueue(false), 30_000);
+      return () => clearInterval(interval);
+    }
+  }, [fetchQueue, selectedDate]);
+
+  // Handle date change
+  const handleDateChange = (newDate) => {
+    setSelectedDate(newDate);
+    setError('');
+  };
 
   // Implements: REQ-12 — Real endpoint: PATCH /api/appointments/:id/status
   async function handleAction(appointmentId, newStatus) {
@@ -111,9 +155,10 @@ function QueueDashboard() {
     reorderPatients(appointmentId, direction);
 
     try {
+      // Pass the selected date to the reorder endpoint
       await apiCall('/queue/reorder', {
         method: 'PATCH',
-        body: { appointmentId, direction },
+        body: { appointmentId, direction, date: selectedDate },
       });
     } catch (err) {
       console.error('Reorder error:', err);
@@ -126,21 +171,78 @@ function QueueDashboard() {
   }
 
   const totalPatients = patients.length;
+  const todayIST = getTodayIST();
+  const isToday = selectedDate === todayIST;
+  const displayDate = formatDateForDisplay(selectedDate);
 
   return (
     <div>
       <div className="queue-header">
         <div>
-          <h2>Today's Queue</h2>
+          <h2>Queue Dashboard</h2>
           <div className="patient-count">{totalPatients} patient{totalPatients !== 1 ? 's' : ''} scheduled</div>
         </div>
-        <button
-          className="btn btn-outline-secondary btn-sm"
-          onClick={() => fetchQueue(true)}
-          disabled={initialLoad}
-        >
-          🔄 Refresh
-        </button>
+        <div className="queue-controls">
+          <div className="date-selector">
+            <label htmlFor="queue-date" className="form-label">View Date:</label>
+            <div className="date-input-group">
+              <input
+                id="queue-date"
+                type="date"
+                className="form-control form-control-sm"
+                value={selectedDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                min="2024-01-01"
+                max={getDateIST(30)} // 30 days from today in IST
+              />
+              <div className="date-shortcuts">
+                <button
+                  type="button"
+                  className={`btn btn-sm ${isToday ? 'btn-primary' : 'btn-outline-primary'}`}
+                  onClick={() => handleDateChange(getTodayIST())}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => {
+                    handleDateChange(getTomorrowIST());
+                  }}
+                >
+                  Tomorrow
+                </button>
+              </div>
+            </div>
+          </div>
+          <button
+            className="btn btn-outline-secondary btn-sm"
+            onClick={() => fetchQueue(true)}
+            disabled={initialLoad}
+          >
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
+
+      <div className="queue-date-display">
+        <h3>{displayDate}'s Queue</h3>
+        {!isToday && (
+          <div className="alert alert-info py-2">
+            <small>
+              📅 Viewing {selectedDate < getTodayIST() ? 'historical' : 'future'} queue. 
+              Auto-refresh is {isToday ? 'enabled' : 'disabled'} for {isToday ? 'today' : 'non-today dates'}.
+              {selectedDate < getTodayIST() && ' Status changes for past dates are not recommended.'}
+            </small>
+          </div>
+        )}
+        {isToday && totalPatients > 0 && (
+          <div className="alert alert-success py-2">
+            <small>
+              🔄 Live updates every 30 seconds. Queue positions and wait times update automatically.
+            </small>
+          </div>
+        )}
       </div>
 
       {error        && <div className="alert alert-danger">{error}</div>}
@@ -169,7 +271,7 @@ function QueueDashboard() {
               {patients.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center text-muted py-4">
-                    No patients in queue today.
+                    No patients in queue for {displayDate.toLowerCase()}.
                   </td>
                 </tr>
               ) : (

@@ -21,6 +21,57 @@
   font-weight: 500;
 }
 
+.queue-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.date-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.date-selector label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  margin: 0;
+}
+
+.date-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.date-selector input {
+  min-width: 140px;
+}
+
+.date-shortcuts {
+  display: flex;
+  gap: 4px;
+}
+
+.date-shortcuts .btn {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+}
+
+.queue-date-display {
+  margin-bottom: 20px;
+}
+
+.queue-date-display h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 8px 0;
+  font-family: 'Poppins', sans-serif;
+}
+
 .action-cell {
   display: flex;
   gap: 6px;
