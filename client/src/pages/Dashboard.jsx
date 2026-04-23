@@ -25,7 +25,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getToken } from '../services/auth';
+import { getToken, getUserId } from '../services/auth';
 import RescheduleCancel from '../components/RescheduleCancel';
 // REQ-14: Debounce utility prevents excessive queue-refresh calls during polling
 import { debounce } from '../utils/debounce';
@@ -119,12 +119,23 @@ const Dashboard = () => {
   }, []);
 
   // ==========================================================================
+  // HELPER FUNCTIONS
+  // ==========================================================================
+
+  // Get user-specific localStorage key to prevent data leakage between users
+  const getUserAppointmentsKey = () => {
+    const userId = getUserId();
+    return userId ? `userAppointments_${userId}` : 'userAppointments';
+  };
+
+  // ==========================================================================
   // DATA LOADERS
   // ==========================================================================
 
   const loadAppointments = () => {
     try {
-      const raw = localStorage.getItem('userAppointments');
+      const appointmentsKey = getUserAppointmentsKey();
+      const raw = localStorage.getItem(appointmentsKey);
       if (raw) {
         const allAppointments = JSON.parse(raw);
         
@@ -151,9 +162,15 @@ const Dashboard = () => {
         if (futureAppointments.length > 0) {
           loadQueueDataForAppointment(futureAppointments[0]);
         }
+      } else {
+        // No appointments found for this user
+        setUpcomingAppointments([]);
+        setTotalAppointments(0);
       }
     } catch (err) {
       console.error('Error loading appointments:', err);
+      setUpcomingAppointments([]);
+      setTotalAppointments(0);
     }
   };
 
@@ -295,7 +312,8 @@ const Dashboard = () => {
       apt.id === rescheduled.id ? rescheduled : apt
     );
     setUpcomingAppointments(updated);
-    localStorage.setItem('userAppointments', JSON.stringify(updated));
+    const appointmentsKey = getUserAppointmentsKey();
+    localStorage.setItem(appointmentsKey, JSON.stringify(updated));
     setRescheduleModalOpen(false);
     setSelectedAppointment(null);
   };
@@ -315,7 +333,8 @@ const Dashboard = () => {
       (apt) => apt.id !== cancellationRecord.appointmentId
     );
     setUpcomingAppointments(updated);
-    localStorage.setItem('userAppointments', JSON.stringify(updated));
+    const appointmentsKey = getUserAppointmentsKey();
+    localStorage.setItem(appointmentsKey, JSON.stringify(updated));
     setTotalAppointments(updated.length);
 
     localStorage.removeItem('userQueueData');

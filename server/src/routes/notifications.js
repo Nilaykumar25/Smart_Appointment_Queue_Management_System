@@ -6,15 +6,17 @@ const express     = require("express");
 const router      = express.Router();
 const db          = require("../db/connection");
 const requireRole = require("../middleware/requireRole");
+const { formatISTSQL } = require("../utils/timezone");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: save a notification record to the DB
 // Called internally by this file and can be imported by appointments.js
 // ─────────────────────────────────────────────────────────────────────────────
 async function saveNotification(userId, message) {
+  // Insert with explicit UTC timestamp
   await db.query(
-    `INSERT INTO notifications (user_id, message, status)
-     VALUES ($1, $2, 'Sent')`,
+    `INSERT INTO notifications (user_id, message, status, timestamp)
+     VALUES ($1, $2, 'Sent', TIMEZONE('UTC', NOW()))`,
     [userId, message]
   );
 }
@@ -146,7 +148,7 @@ router.get("/my", requireRole(["patient", "staff", "admin"]), async (req, res) =
          notification_id AS "notificationId",
          message,
          status,
-         TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI') AS "sentAt"
+         ${formatISTSQL('timestamp')} AS "sentAt"
        FROM notifications
        WHERE user_id = $1
        ORDER BY timestamp DESC

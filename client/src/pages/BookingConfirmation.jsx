@@ -244,10 +244,11 @@ const BookingConfirmation = () => {
       }
 
       // Always persist locally for dashboard display
-      const existingAppointments = localStorage.getItem('userAppointments');
+      const appointmentsKey = userId ? `userAppointments_${userId}` : 'userAppointments';
+      const existingAppointments = localStorage.getItem(appointmentsKey);
       const appointments = existingAppointments ? JSON.parse(existingAppointments) : [];
       appointments.push(completeAppointment);
-      localStorage.setItem('userAppointments', JSON.stringify(appointments));
+      localStorage.setItem(appointmentsKey, JSON.stringify(appointments));
 
       // Show success message
       setConfirmationMessage('✅ Appointment booked successfully!');

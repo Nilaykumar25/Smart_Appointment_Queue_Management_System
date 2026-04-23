@@ -88,22 +88,35 @@ router.post(
   async (req, res) => {
     const { doctorId, workingDays, startTime, endTime, slotDuration } = req.body;
 
+    console.log('[POST /schedule/config] Received request:', { 
+      doctorId, 
+      workingDays, 
+      startTime, 
+      endTime, 
+      slotDuration,
+      slotDurationType: typeof slotDuration
+    });
+
     // Validate required fields
     if (!doctorId || !workingDays?.length || !startTime || !endTime || !slotDuration) {
+      console.error('[POST /schedule/config] Validation failed: Missing required fields');
       return res.status(400).json({
         error: "doctorId, workingDays, startTime, endTime, slotDuration are all required",
       });
     }
     if (startTime >= endTime) {
+      console.error('[POST /schedule/config] Validation failed: startTime >= endTime');
       return res.status(400).json({ error: "startTime must be before endTime" });
     }
 
     const validDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     if (!workingDays.every(d => validDays.includes(d))) {
+      console.error('[POST /schedule/config] Validation failed: Invalid working days');
       return res.status(400).json({ error: "workingDays must contain valid day names: Mon Tue Wed Thu Fri Sat Sun" });
     }
 
     if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) {
+      console.error('[POST /schedule/config] Validation failed: Invalid time format');
       return res.status(400).json({ error: "startTime and endTime must be in HH:MM format" });
     }
 
@@ -123,32 +136,67 @@ router.post(
         }
       }
 
-      // Delete existing non-blackout schedules for this doctor in that range
-      await db.query(
+      console.log(`[POST /schedule/config] Generated ${datesToInsert.length} dates to insert`);
+
+      // Strategy for handling existing schedules with appointments:
+      // 1. Delete schedules WITHOUT appointments (safe to remove)
+      // 2. For schedules WITH appointments, we keep them as-is to preserve foreign keys
+      // 3. Insert new schedules for dates that don't exist yet
+      
+      // Step 1: Delete only schedules without appointments for this doctor in the date range
+      const deleteResult = await db.query(
         `DELETE FROM schedules
          WHERE doctor_id = $1
            AND is_blackout = FALSE
            AND date >= CURRENT_DATE
-           AND date < CURRENT_DATE + INTERVAL '90 days'`,
+           AND date < CURRENT_DATE + INTERVAL '90 days'
+           AND schedule_id NOT IN (
+             SELECT DISTINCT schedule_id 
+             FROM appointments 
+             WHERE schedule_id IS NOT NULL
+           )`,
         [doctorId]
       );
+      
+      console.log(`[POST /schedule/config] Deleted ${deleteResult.rowCount} schedules without appointments`);
 
-      // Insert new schedule rows for each working date
+      // Step 2: Get all existing schedule dates for this doctor (including those with appointments)
+      const { rows: existingSchedules } = await db.query(
+        `SELECT DISTINCT date::text as date
+         FROM schedules
+         WHERE doctor_id = $1
+           AND date >= CURRENT_DATE
+           AND date < CURRENT_DATE + INTERVAL '90 days'
+           AND is_blackout = FALSE`,
+        [doctorId]
+      );
+      
+      const existingDates = new Set(existingSchedules.map(s => s.date));
+      console.log(`[POST /schedule/config] Found ${existingDates.size} existing schedule dates`);
+
+      // Step 3: Insert new schedules only for dates that don't exist yet
+      let insertedCount = 0;
       for (const date of datesToInsert) {
-        await db.query(
-          `INSERT INTO schedules (doctor_id, date, start_time, end_time, slot_duration, is_blackout)
-           VALUES ($1, $2, $3, $4, $5, FALSE)`,
-          [doctorId, date, startTime, endTime, slotDuration]
-        );
+        if (!existingDates.has(date)) {
+          await db.query(
+            `INSERT INTO schedules (doctor_id, date, start_time, end_time, slot_duration, is_blackout)
+             VALUES ($1, $2, $3, $4, $5, FALSE)`,
+            [doctorId, date, startTime, endTime, slotDuration]
+          );
+          insertedCount++;
+        }
       }
+      
+      console.log(`[POST /schedule/config] Inserted ${insertedCount} new schedules`);
 
+      console.log('[POST /schedule/config] Schedule saved successfully');
       res.status(201).json({
         message:       "Schedule saved successfully",
-        datesScheduled: datesToInsert.length,
+        datesScheduled: insertedCount,
       });
     } catch (err) {
-      console.error("POST /schedule/config error:", err);
-      res.status(500).json({ error: "Failed to save schedule" });
+      console.error("[POST /schedule/config] Database error:", err);
+      res.status(500).json({ error: `Failed to save schedule: ${err.message}` });
     }
   }
 );
@@ -383,9 +431,18 @@ router.patch(
     const { dayOfWeek } = req.params;
     const { startTime, endTime, isOperational } = req.body;
 
+    console.log(`[PATCH /schedule/facility/${dayOfWeek}] Request received:`, {
+      dayOfWeek,
+      startTime,
+      endTime,
+      isOperational,
+      bodyKeys: Object.keys(req.body)
+    });
+
     // Validate day_of_week (0-6)
     const dayNum = parseInt(dayOfWeek);
     if (isNaN(dayNum) || dayNum < 0 || dayNum > 6) {
+      console.error(`[PATCH /schedule/facility/${dayOfWeek}] Invalid day number: ${dayNum}`);
       return res.status(400).json({ error: "dayOfWeek must be 0-6 (Monday-Sunday)" });
     }
 
@@ -394,11 +451,13 @@ router.patch(
     //   - Start time must be before end time
     if (isOperational === true) {
       if (!startTime || !endTime) {
+        console.error(`[PATCH /schedule/facility/${dayOfWeek}] Missing times for operational day`);
         return res.status(400).json({
           error: "startTime and endTime are required when facility is operational",
         });
       }
       if (startTime >= endTime) {
+        console.error(`[PATCH /schedule/facility/${dayOfWeek}] Invalid time range: ${startTime} >= ${endTime}`);
         return res.status(400).json({
           error: "startTime must be before endTime",
         });
@@ -406,6 +465,13 @@ router.patch(
     }
 
     try {
+      console.log(`[PATCH /schedule/facility/${dayOfWeek}] Updating facility hours:`, {
+        dayNum,
+        startTime,
+        endTime,
+        isOperational
+      });
+
       // REQ-9: Update facility hours mapping
       //   - Updates the specific day's operating hours
       //   - If isOperational=false, times are irrelevant but stored for reference
@@ -421,10 +487,13 @@ router.patch(
       );
 
       if (rows.length === 0) {
+        console.error(`[PATCH /schedule/facility/${dayOfWeek}] No rows found for day ${dayNum}`);
         return res.status(404).json({ error: "Facility config not found for that day" });
       }
 
       const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+      console.log(`[PATCH /schedule/facility/${dayOfWeek}] Successfully updated ${dayNames[dayNum]}`);
+      
       res.json({
         message: `${dayNames[dayNum]} facility hours updated successfully`,
         updated: {
@@ -436,7 +505,7 @@ router.patch(
       });
     } catch (err) {
       console.error("PATCH /schedule/facility/:dayOfWeek error:", err);
-      res.status(500).json({ error: "Failed to update facility config" });
+      res.status(500).json({ error: `Failed to update facility config: ${err.message}` });
     }
   }
 );

@@ -24,7 +24,14 @@ export async function apiCall(endpoint, options = {}) {
   const res = await fetch(`${BASE_URL}${endpoint}`, config);
 
   if (!res.ok) {
-    const err = new Error(`HTTP error ${res.status}`);
+    let errorMessage = `HTTP error ${res.status}`;
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.error || errorData.message || errorMessage;
+    } catch {
+      // If response is not JSON, use default error message
+    }
+    const err = new Error(errorMessage);
     err.status = res.status;
     throw err;
   }

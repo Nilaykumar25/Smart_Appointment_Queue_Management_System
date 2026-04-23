@@ -35,6 +35,9 @@ export async function register(name, email, password) {
     localStorage.setItem('saqms_name',    uname);
     localStorage.setItem('saqms_user_id', userId);
 
+    // Clear legacy appointment data to prevent cross-user contamination
+    localStorage.removeItem('userAppointments');
+
     return { success: true, role, name: uname, userId };
   } catch {
     return { success: false, message: 'Could not connect to server.' };
@@ -70,6 +73,9 @@ export async function login(email, password) {
     localStorage.setItem('saqms_name',    uname);
     localStorage.setItem('saqms_user_id', userId);
 
+    // Clear legacy appointment data to prevent cross-user contamination
+    localStorage.removeItem('userAppointments');
+
     return { success: true, role, name: uname, userId };
   } catch (err) {
     console.error('Login error:', err);
@@ -93,10 +99,21 @@ export async function logout() {
   } catch (err) {
     console.error('Logout error:', err);
   } finally {
+    // Clear user-specific data
+    const userId = getUserId();
+    if (userId) {
+      localStorage.removeItem(`userAppointments_${userId}`);
+      localStorage.removeItem('userQueueData'); // This can be shared or made user-specific too
+    }
+    
+    // Clear auth tokens
     localStorage.removeItem('saqms_token');
     localStorage.removeItem('saqms_role');
     localStorage.removeItem('saqms_name');
     localStorage.removeItem('saqms_user_id');
+    
+    // Clear legacy keys (for users who had data before the fix)
+    localStorage.removeItem('userAppointments');
   }
 }
 

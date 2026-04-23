@@ -84,6 +84,7 @@ function ScheduleSection({ doctors, schedules }) {
 
   function handleDoctorChange(e) {
     const id = e.target.value;
+    console.log('Doctor changed to:', id);
     setSelectedDoctorId(id);
     setSaveError('');
     setSaveSuccess('');
@@ -112,15 +113,27 @@ function ScheduleSection({ doctors, schedules }) {
     setSaving(true);
     setSaveSuccess('');
     setSaveError('');
+    
+    const payload = { 
+      doctorId: selectedDoctorId, 
+      workingDays, 
+      startTime, 
+      endTime, 
+      slotDuration: parseInt(slotDuration) 
+    };
+    
+    console.log('Saving schedule with payload:', payload);
+    
     try {
-      await apiCall('/schedule/config', {
+      const response = await apiCall('/schedule/config', {
         method: 'POST',
-        body: { doctorId: selectedDoctorId, workingDays, startTime, endTime, slotDuration: parseInt(slotDuration) },
+        body: payload,
       });
+      console.log('Schedule saved successfully:', response);
       setSaveSuccess('✅ Schedule saved successfully.');
     } catch (err) {
       console.error('Save schedule error:', err);
-      setSaveError('❌ Failed to save. Please try again.');
+      setSaveError(`❌ ${err.message || 'Failed to save. Please try again.'}`);
     } finally {
       setSaving(false);
     }
@@ -468,7 +481,8 @@ function FacilitySection() {
       setSaveSuccess(`✅ ${dayNames[dayOfWeek]} facility hours updated`);
       setTimeout(() => setSaveSuccess(''), 3000);
     } catch (err) {
-      setSaveError(`Failed to save ${dayNames[dayOfWeek]} hours: ${err.message}`);
+      console.error(`Failed to save ${dayNames[dayOfWeek]} hours:`, err);
+      setSaveError(`Failed to save ${dayNames[dayOfWeek]} hours: ${err.message || 'Unknown error'}`);
     } finally {
       setSavingDay(null);
     }
