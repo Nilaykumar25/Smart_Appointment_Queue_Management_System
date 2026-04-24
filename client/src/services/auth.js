@@ -117,6 +117,50 @@ export async function logout() {
   }
 }
 
+// Refresh access token using refresh token
+export async function refreshToken() {
+  try {
+    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // Include httpOnly refresh token cookie
+    });
+
+    if (!res.ok) {
+      // Refresh failed, user needs to log in again
+      logout();
+      return { success: false, message: 'Session expired. Please log in again.' };
+    }
+
+    const data = await res.json();
+    
+    // Update stored tokens and user info
+    localStorage.setItem('saqms_token', data.accessToken);
+    localStorage.setItem('saqms_role', data.role);
+    localStorage.setItem('saqms_name', data.name);
+    localStorage.setItem('saqms_user_id', data.userId);
+
+    return { success: true, accessToken: data.accessToken };
+  } catch (err) {
+    console.error('Token refresh error:', err);
+    logout();
+    return { success: false, message: 'Could not refresh session.' };
+  }
+}
+
+export function isTokenExpired() {
+  const token = getToken();
+  if (!token) return true;
+  
+  try {
+    const payload = decodeJWT(token);
+    const currentTime = Math.floor(Date.now() / 1000);
+    return payload.exp < currentTime;
+  } catch {
+    return true;
+  }
+}
+
 export function getToken()        { return localStorage.getItem('saqms_token')   || null; }
 export function getRole()         { return localStorage.getItem('saqms_role')    || null; }
 export function getName()         { return localStorage.getItem('saqms_name')    || null; }

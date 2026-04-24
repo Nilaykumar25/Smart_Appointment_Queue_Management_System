@@ -352,6 +352,34 @@
   font-weight: 500;
 }
 
+.no-slots-message {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+.no-slots-info {
+  background: #fef3c7;
+  border: 2px solid #f59e0b;
+  border-radius: 0.8rem;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.no-slots-reason {
+  color: #92400e;
+  font-size: 0.9rem;
+  margin: 1rem 0;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.no-slots-suggestion {
+  color: #1f2937;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-top: 1rem;
+}
+
 /* REQ-5: Slot Summary */
 .slot-summary {
   background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 100%);

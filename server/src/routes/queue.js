@@ -7,20 +7,7 @@ const express     = require('express');
 const router      = express.Router();
 const db          = require('../db/connection');
 const requireRole = require('../middleware/requireRole');
-
-// Helper function to get current date in IST as YYYY-MM-DD
-function getTodayIST() {
-  const now = new Date();
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const istOffset = 5.5 * 60 * 60000; // IST is UTC+5:30
-  const istTime = new Date(utc + istOffset);
-  
-  const year = istTime.getFullYear();
-  const month = String(istTime.getMonth() + 1).padStart(2, '0');
-  const day = String(istTime.getDate()).padStart(2, '0');
-  
-  return `${year}-${month}-${day}`;
-}
+const { getTodayIST, formatISTSQL } = require('../utils/timezone');
 
 // ─── Queue Position Mapping Strategy ─────────────────────────────────────────
 // - Each patient gets a queue position based on their appointment start time
@@ -33,57 +20,102 @@ function getTodayIST() {
 
 // Helper: ensure all of today's active appointments have a queue entry
 // Called by GET /today so the queue self-heals if entries are missing
-// Enhanced to support specific dates
+// Enhanced to support specific dates, fix duplicate positions, and handle multiple patients per slot
 async function ensureQueueEntries(client, targetDate = null) {
   // Default to today if no date specified
   const dateCondition = targetDate 
     ? `DATE(s.date) = $1`
-    : `DATE(s.date AT TIME ZONE 'Asia/Kolkata') = (NOW() AT TIME ZONE 'Asia/Kolkata')::date`;
+    : `DATE(s.date) = $1`;
   
-  const queryParams = targetDate ? [targetDate] : [];
+  const queryParams = targetDate ? [targetDate] : [getTodayIST()];
 
-  const { rows: missing } = await client.query(
-    `SELECT a.appointment_id
+  // Get all appointments that should be in queue, ordered by appointment time, then by booking order
+  const { rows: shouldBeInQueue } = await client.query(
+    `SELECT a.appointment_id, s.start_time, a.created_at
      FROM appointments a
      JOIN schedules s ON s.schedule_id = a.schedule_id
-     LEFT JOIN queue q ON q.appointment_id = a.appointment_id
      WHERE ${dateCondition}
        AND a.status NOT IN ('Completed', 'No-Show')
-       AND q.queue_id IS NULL
-     ORDER BY s.start_time`,
+     ORDER BY s.start_time, a.created_at`,
     queryParams
   );
 
-  if (missing.length === 0) return;
+  if (shouldBeInQueue.length === 0) return;
 
-  const maxPosQuery = targetDate
-    ? `SELECT COALESCE(MAX(q.queue_position), 0) AS max_pos
-       FROM queue q
-       JOIN appointments a ON a.appointment_id = q.appointment_id
-       JOIN schedules s    ON s.schedule_id = a.schedule_id
-       WHERE DATE(s.date) = $1`
-    : `SELECT COALESCE(MAX(q.queue_position), 0) AS max_pos
-       FROM queue q
-       JOIN appointments a ON a.appointment_id = q.appointment_id
-       JOIN schedules s    ON s.schedule_id = a.schedule_id
-       WHERE DATE(s.date AT TIME ZONE 'Asia/Kolkata') = (NOW() AT TIME ZONE 'Asia/Kolkata')::date`;
+  // Get existing queue entries
+  const { rows: existingQueue } = await client.query(
+    `SELECT q.appointment_id, q.queue_position
+     FROM queue q
+     JOIN appointments a ON a.appointment_id = q.appointment_id
+     JOIN schedules s ON s.schedule_id = a.schedule_id
+     WHERE ${dateCondition}
+       AND a.status NOT IN ('Completed', 'No-Show')`,
+    queryParams
+  );
 
-  const { rows: maxRow } = await client.query(maxPosQuery, queryParams);
-  let pos = parseInt(maxRow[0].max_pos);
+  // Create a map of existing entries
+  const existingMap = new Map();
+  existingQueue.forEach(entry => {
+    existingMap.set(entry.appointment_id, entry.queue_position);
+  });
 
-  for (const row of missing) {
-    pos += 1;
+  // Fix/create queue entries with proper sequential positions
+  // Queue position is based on: 1) appointment time, 2) booking order within same time
+  for (let i = 0; i < shouldBeInQueue.length; i++) {
+    const appointment = shouldBeInQueue[i];
+    const correctPosition = i + 1;
+    const currentPosition = existingMap.get(appointment.appointment_id);
+
+    if (!currentPosition) {
+      // Missing queue entry - create it (but only if it doesn't already exist due to unique constraint)
+      try {
+        await client.query(
+          `INSERT INTO queue (appointment_id, queue_position, estimated_wait_time)
+           VALUES ($1, $2, $3)`,
+          [appointment.appointment_id, correctPosition, correctPosition * 10]
+        );
+        console.log(`[QUEUE FIX] Created queue entry for appointment ${appointment.appointment_id} at position ${correctPosition}`);
+      } catch (err) {
+        if (err.code === '23505') {
+          // Unique constraint violation - queue entry already exists, skip
+          console.log(`[QUEUE FIX] Queue entry already exists for appointment ${appointment.appointment_id}`);
+        } else {
+          throw err;
+        }
+      }
+    } else if (currentPosition !== correctPosition) {
+      // Wrong position - fix it
+      await client.query(
+        `UPDATE queue SET queue_position = $1 
+         WHERE appointment_id = $2`,
+        [correctPosition, appointment.appointment_id]
+      );
+      console.log(`[QUEUE FIX] Fixed position for appointment ${appointment.appointment_id}: ${currentPosition} → ${correctPosition}`);
+    }
+  }
+
+  // Remove any queue entries that shouldn't exist
+  const shouldExistIds = shouldBeInQueue.map(a => a.appointment_id);
+  if (shouldExistIds.length > 0) {
+    const placeholders = shouldExistIds.map((_, i) => `$${i + 2}`).join(',');
     await client.query(
-      `INSERT INTO queue (appointment_id, queue_position, estimated_wait_time)
-       VALUES ($1, $2, $3)
-       ON CONFLICT DO NOTHING`,
-      [row.appointment_id, pos, pos * 10]
+      `DELETE FROM queue 
+       WHERE appointment_id IN (
+         SELECT q.appointment_id 
+         FROM queue q
+         JOIN appointments a ON a.appointment_id = q.appointment_id
+         JOIN schedules s ON s.schedule_id = a.schedule_id
+         WHERE ${dateCondition}
+           AND q.appointment_id NOT IN (${placeholders})
+       )`,
+      [queryParams[0], ...shouldExistIds]
     );
   }
 }
 
 // GET /api/queue/today
 // Returns all appointments for today with queue position and patient info
+// Enhanced: Shows multiple patients per time slot with proper ordering
 // Called by: QueueDashboard.jsx every 30 seconds
 router.get('/today', requireRole(['admin', 'staff']), async (req, res) => {
   const client = await db.getClient();
@@ -97,8 +129,20 @@ router.get('/today', requireRole(['admin', 'staff']), async (req, res) => {
          u.name            AS "patientName",
          q.queue_position  AS "queuePosition",
          TO_CHAR(s.start_time, 'HH24:MI') AS "scheduledTime",
+         TO_CHAR(s.end_time, 'HH24:MI') AS "endTime",
          a.status,
          d.avg_consultation_duration AS "avgConsultationDuration",
+         s.max_capacity AS "slotCapacity",
+         -- Count how many patients are in this same time slot
+         (
+           SELECT COUNT(*)
+           FROM appointments a2
+           JOIN schedules s2 ON s2.schedule_id = a2.schedule_id
+           WHERE a2.doctor_id = a.doctor_id
+             AND s2.date = s.date
+             AND s2.start_time = s.start_time
+             AND a2.status NOT IN ('Completed', 'No-Show')
+         ) AS "patientsInSlot",
          -- REQ-8: Live wait = patients ahead × avg consultation duration
          (
            SELECT COUNT(*)
@@ -107,7 +151,8 @@ router.get('/today', requireRole(['admin', 'staff']), async (req, res) => {
            JOIN schedules s2    ON s2.schedule_id    = a2.schedule_id
            WHERE a2.doctor_id = a.doctor_id
              AND s2.date = s.date
-             AND s2.start_time < s.start_time
+             AND (s2.start_time < s.start_time OR 
+                  (s2.start_time = s.start_time AND a2.created_at < a.created_at))
              AND a2.status IN ('Booked', 'Arrived')
          ) * COALESCE(d.avg_consultation_duration, 15) AS "estimatedWaitMinutes"
        FROM appointments a
@@ -115,9 +160,10 @@ router.get('/today', requireRole(['admin', 'staff']), async (req, res) => {
        JOIN schedules s    ON s.schedule_id   = a.schedule_id
        JOIN doctors d      ON d.doctor_id     = a.doctor_id
        LEFT JOIN queue q   ON q.appointment_id = a.appointment_id
-       WHERE DATE(s.date AT TIME ZONE 'Asia/Kolkata') = (NOW() AT TIME ZONE 'Asia/Kolkata')::date
+       WHERE DATE(s.date) = $1
          AND a.status NOT IN ('Completed', 'No-Show')
-       ORDER BY COALESCE(q.queue_position, 9999), s.start_time`
+       ORDER BY COALESCE(q.queue_position, 9999), s.start_time, a.created_at`,
+      [getTodayIST()]
     );
 
     res.json(rows);
@@ -195,6 +241,7 @@ router.get('/date/:date', requireRole(['admin', 'staff']), async (req, res) => {
 // Swap queue positions between two appointments
 // Body: { appointmentId, direction: 'up' | 'down', date?: 'YYYY-MM-DD' }
 // Called by: QueueDashboard.jsx ↑↓ buttons
+// Enhanced: Works with any queue positions, handles gaps, sends notifications
 router.patch('/reorder', requireRole(['admin', 'staff']), async (req, res) => {
   const { appointmentId, direction, date } = req.body;
 
@@ -213,51 +260,92 @@ router.patch('/reorder', requireRole(['admin', 'staff']), async (req, res) => {
 
     // Ensure queue entries exist before reordering (only for today)
     if (isToday) {
-      await ensureQueueEntries(client);
+      await ensureQueueEntries(client, targetDate);
     }
 
-    const { rows: current } = await client.query(
-      `SELECT q.queue_id, q.queue_position
+    // Get all queue entries for the date, ordered by position
+    const { rows: allQueueEntries } = await client.query(
+      `SELECT 
+         q.queue_id, 
+         q.appointment_id, 
+         q.queue_position, 
+         a.patient_id, 
+         u.name as patient_name
        FROM queue q
-       WHERE q.appointment_id = $1`,
-      [appointmentId]
+       JOIN appointments a ON a.appointment_id = q.appointment_id
+       JOIN schedules s ON s.schedule_id = a.schedule_id
+       JOIN users u ON u.user_id = a.patient_id
+       WHERE DATE(s.date) = $1
+         AND a.status NOT IN ('Completed', 'No-Show')
+       ORDER BY q.queue_position`,
+      [targetDate]
     );
 
-    if (current.length === 0) {
+    if (allQueueEntries.length < 2) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Need at least 2 patients in queue to reorder' });
+    }
+
+    // Find the current appointment in the ordered list
+    const currentIndex = allQueueEntries.findIndex(entry => entry.appointment_id === appointmentId);
+    
+    if (currentIndex === -1) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Appointment not found in queue' });
     }
 
-    const currentPos     = current[0].queue_position;
-    const currentQueueId = current[0].queue_id;
-    const targetPos      = direction === 'up' ? currentPos - 1 : currentPos + 1;
-
-    // Find target appointment for the specific date
-    const { rows: target } = await client.query(
-      `SELECT q.queue_id
-       FROM queue q
-       JOIN appointments a ON a.appointment_id = q.appointment_id
-       JOIN schedules s    ON s.schedule_id = a.schedule_id
-       WHERE q.queue_position = $1
-         AND DATE(s.date) = $2
-         AND a.status NOT IN ('Completed', 'No-Show')`,
-      [targetPos, targetDate]
-    );
-
-    if (target.length === 0) {
+    // Calculate target index
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    
+    // Check boundaries
+    if (targetIndex < 0 || targetIndex >= allQueueEntries.length) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Already at the boundary of the queue' });
     }
 
-    const targetQueueId = target[0].queue_id;
+    // Get the two entries to swap
+    const currentEntry = allQueueEntries[currentIndex];
+    const targetEntry = allQueueEntries[targetIndex];
 
-    // Swap using a temp position to avoid unique constraint violation
-    await client.query(`UPDATE queue SET queue_position = 99999 WHERE queue_id = $1`, [currentQueueId]);
-    await client.query(`UPDATE queue SET queue_position = $1    WHERE queue_id = $2`, [currentPos, targetQueueId]);
-    await client.query(`UPDATE queue SET queue_position = $1    WHERE queue_id = $2`, [targetPos, currentQueueId]);
+    // Swap their queue positions in the database
+    await client.query(`UPDATE queue SET queue_position = 99999 WHERE queue_id = $1`, [currentEntry.queue_id]);
+    await client.query(`UPDATE queue SET queue_position = $1 WHERE queue_id = $2`, [currentEntry.queue_position, targetEntry.queue_id]);
+    await client.query(`UPDATE queue SET queue_position = $1 WHERE queue_id = $2`, [targetEntry.queue_position, currentEntry.queue_id]);
 
     await client.query('COMMIT');
-    res.json({ message: 'Queue order updated', newPosition: targetPos });
+
+    // Send notifications to both affected patients about their position change
+    const { saveNotification } = require('./notifications');
+    
+    try {
+      // Notify the patient who was moved
+      const movedDirection = direction === 'up' ? 'earlier' : 'later';
+      await saveNotification(
+        currentEntry.patient_id, 
+        `Your queue position has been updated. You are now position ${targetEntry.queue_position} in the queue (moved ${movedDirection}).`
+      );
+
+      // Notify the patient who was displaced
+      const displacedDirection = direction === 'up' ? 'later' : 'earlier';
+      await saveNotification(
+        targetEntry.patient_id, 
+        `Your queue position has been updated. You are now position ${currentEntry.queue_position} in the queue (moved ${displacedDirection}).`
+      );
+
+      console.log(`[QUEUE REORDER] ${currentEntry.patient_name} (pos ${currentEntry.queue_position}→${targetEntry.queue_position}) and ${targetEntry.patient_name} (pos ${targetEntry.queue_position}→${currentEntry.queue_position}) notified`);
+    } catch (notificationError) {
+      console.error('Failed to send queue reorder notifications:', notificationError);
+      // Don't fail the reorder if notifications fail
+    }
+
+    res.json({ 
+      message: 'Queue order updated successfully', 
+      newPosition: targetEntry.queue_position,
+      affectedPatients: [
+        { name: currentEntry.patient_name, oldPosition: currentEntry.queue_position, newPosition: targetEntry.queue_position },
+        { name: targetEntry.patient_name, oldPosition: targetEntry.queue_position, newPosition: currentEntry.queue_position }
+      ]
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('PATCH /queue/reorder error:', err);

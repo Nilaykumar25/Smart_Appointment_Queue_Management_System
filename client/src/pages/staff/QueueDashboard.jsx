@@ -152,19 +152,46 @@ function QueueDashboard() {
     setReorderingId(appointmentId + direction);
     setReorderError('');
 
+    // Store original state in case we need to revert
+    const originalPatients = [...patients];
+    
+    // Apply optimistic update
     reorderPatients(appointmentId, direction);
 
     try {
       // Pass the selected date to the reorder endpoint
-      await apiCall('/queue/reorder', {
+      const result = await apiCall('/queue/reorder', {
         method: 'PATCH',
         body: { appointmentId, direction, date: selectedDate },
       });
+      
+      // Show success message with affected patients info
+      if (result.affectedPatients) {
+        const [patient1, patient2] = result.affectedPatients;
+        console.log(`✅ Queue reordered: ${patient1.name} (${patient1.oldPosition}→${patient1.newPosition}), ${patient2.name} (${patient2.oldPosition}→${patient2.newPosition})`);
+      }
+      
+      // Don't fetch queue again - keep the optimistic update since it was successful
+      // The server has confirmed the change, so our optimistic update is correct
+      
     } catch (err) {
       console.error('Reorder error:', err);
-      setReorderError('Could not save new order. Refreshing...');
-      await fetchQueue(false);
-      setTimeout(() => setReorderError(''), 3000);
+      
+      // Handle boundary condition gracefully - revert optimistic update
+      if (err.message && err.message.includes('Already at the boundary')) {
+        // Revert to original state
+        resetPatients(originalPatients);
+      } else if (err.message && err.message.includes('Need at least 2 patients')) {
+        // Revert to original state
+        resetPatients(originalPatients);
+        setReorderError('Need at least 2 patients in queue to reorder');
+        setTimeout(() => setReorderError(''), 3000);
+      } else {
+        // Show error for unexpected failures and refresh from server
+        setReorderError('Could not save new order. Refreshing...');
+        await fetchQueue(false);
+        setTimeout(() => setReorderError(''), 3000);
+      }
     } finally {
       setReorderingId(null);
     }
@@ -262,6 +289,7 @@ function QueueDashboard() {
                 <th style={{ width: '90px' }}>Queue #</th>
                 <th>Patient Name</th>
                 <th>Scheduled At</th>
+                <th>Slot Info</th>
                 <th>Status</th>
                 <th>Actions</th>
                 <th style={{ width: '90px' }}>Reorder</th>
@@ -270,7 +298,7 @@ function QueueDashboard() {
             <tbody>
               {patients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-muted py-4">
+                  <td colSpan={7} className="text-center text-muted py-4">
                     No patients in queue for {displayDate.toLowerCase()}.
                   </td>
                 </tr>
@@ -286,6 +314,17 @@ function QueueDashboard() {
                       <td><strong>{patient.queuePosition ?? idx + 1}</strong></td>
                       <td>{patient.patientName}</td>
                       <td>{patient.scheduledTime}</td>
+                      <td>
+                        <small className="text-muted">
+                          {patient.patientsInSlot > 1 ? (
+                            <span>
+                              {patient.patientsInSlot}/{patient.slotCapacity || 3} in slot
+                            </span>
+                          ) : (
+                            <span>Solo appointment</span>
+                          )}
+                        </small>
+                      </td>
                       <td><StatusBadge status={patient.status} /></td>
                       <td>
                         <ActionButtons

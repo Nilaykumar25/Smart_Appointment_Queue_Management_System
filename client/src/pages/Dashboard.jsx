@@ -6,64 +6,40 @@
  * Route: /dashboard (Protected — authenticated users only)
  * Redirects non-authenticated users to /login
  *
- * Modules rendered:
- *  1. Statistics Tiles  — quick KPIs (appointments, queue, est. wait time)
- *  2. Upcoming Appointments — list of booked visits with manage action
- *  3. Queue Status      — REQ-7 & REQ-8 live position + wait time
- *  4. Medical Records   — placeholder for future visit history
- *  5. Notifications     — placeholder for alert feed
- *
- * Loading strategy:
- *  - isLoading flag drives a 800 ms shimmer skeleton so the layout
- *    never flashes empty before data arrives from localStorage.
- *
- * Polling strategy (REQ-14):
- *  - Queue data is refreshed every 5 seconds via a debounced helper
- *    to avoid excessive reads during rapid consecutive triggers.
+ * DATABASE FIRST - All data fetched directly from database
+ * No cache dependencies - database is primary source
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getToken, getUserId } from '../services/auth';
+import { isTokenExpired } from '../services/auth';
+import { apiCall } from '../services/api';
 import RescheduleCancel from '../components/RescheduleCancel';
-// REQ-14: Debounce utility prevents excessive queue-refresh calls during polling
 import { debounce } from '../utils/debounce';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
 const Dashboard = () => {
-  // ── Auth context ──────────────────────────────────────────────────────────
   const { user } = useAuth();
 
-  // ── Appointment state ─────────────────────────────────────────────────────
+  // State management
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
-  const [totalAppointments, setTotalAppointments]       = useState(0);
-  const [completedAppointments, setCompletedAppointments] = useState(0);
-
-  // ── REQ-7: Queue Position / REQ-8: Estimated Wait Time ───────────────────
-  const [queuePosition, setQueuePosition]       = useState(null);
+  const [totalAppointments, setTotalAppointments] = useState(0);
+  const [queuePosition, setQueuePosition] = useState(null);
   const [estimatedWaitTime, setEstimatedWaitTime] = useState(null);
-  const [isInQueue, setIsInQueue]               = useState(false);
-
-  // ── REQ-6: Reschedule/Cancel modal state ─────────────────────────────────
+  const [isInQueue, setIsInQueue] = useState(false);
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
-
-  // ── Loading state — shows skeleton UI while localStorage data is read ─────
   const [isLoading, setIsLoading] = useState(true);
-
-  // ── Notifications (REQ-16) ────────────────────────────────────────────────
   const [notifications, setNotifications] = useState([]);
 
-  // ── REQ-14: Ref holds the debounced refresh function across renders ───────
   const debouncedQueueRefreshRef = useRef(null);
 
-  // ==========================================================================
-  // EFFECTS
-  // ==========================================================================
-
+  // Effects
   useEffect(() => {
+    if (isTokenExpired()) {
+      console.log('[Dashboard] Token is expired, user may need to log in again');
+    }
+    
     const timer = setTimeout(() => {
       loadAppointments();
       loadQueueData();
@@ -73,25 +49,17 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => {}, 60_000);
-    return () => clearInterval(timer);
-  }, [upcomingAppointments]);
-
-  /**
-   * REQ-14: Debounced queue polling every 5 seconds
-   */
-  useEffect(() => {
     debouncedQueueRefreshRef.current = debounce(() => {
       try {
         loadQueueData();
       } catch (err) {
         console.error('[REQ-14] Error in debounced queue refresh:', err);
       }
-    }, 2000);
+    }, 1000);
 
     const pollInterval = setInterval(() => {
       debouncedQueueRefreshRef.current?.();
-    }, 5000);
+    }, 3000);
 
     return () => {
       clearInterval(pollInterval);
@@ -99,73 +67,42 @@ const Dashboard = () => {
     };
   }, []);
 
-  // REQ-16: Fetch notifications for the logged-in patient
   useEffect(() => {
     async function fetchNotifications() {
       try {
         const token = localStorage.getItem('saqms_token');
         if (!token) return;
-        const res = await fetch(`${BASE_URL}/notifications/my`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
+        
+        const data = await apiCall('/notifications/my');
         setNotifications(data.notifications || []);
-      } catch {
-        // silently fail — notifications are non-critical
+      } catch (error) {
+        console.error('[Notifications] Fetch error:', error);
       }
     }
     fetchNotifications();
   }, []);
 
-  // ==========================================================================
-  // HELPER FUNCTIONS
-  // ==========================================================================
-
-  // Get user-specific localStorage key to prevent data leakage between users
-  const getUserAppointmentsKey = () => {
-    const userId = getUserId();
-    return userId ? `userAppointments_${userId}` : 'userAppointments';
-  };
-
-  // ==========================================================================
-  // DATA LOADERS
-  // ==========================================================================
-
-  const loadAppointments = () => {
+  // Data loaders - DATABASE FIRST
+  const loadAppointments = async () => {
     try {
-      const appointmentsKey = getUserAppointmentsKey();
-      const raw = localStorage.getItem(appointmentsKey);
-      if (raw) {
-        const allAppointments = JSON.parse(raw);
-        
-        // Filter to show only future appointments (including date and time)
-        const now = new Date();
-        
-        const futureAppointments = allAppointments
-          .filter(appointment => {
-            // Combine date and time to create full appointment datetime
-            const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
-            return appointmentDateTime > now;
-          })
-          .sort((a, b) => {
-            // Sort by date and time (earliest first)
-            const dateA = new Date(`${a.date}T${a.time}`);
-            const dateB = new Date(`${b.date}T${b.time}`);
-            return dateA - dateB;
-          });
-        
-        setUpcomingAppointments(futureAppointments);
-        setTotalAppointments(futureAppointments.length);
-        
-        // Load queue data for the most recent (next) appointment
-        if (futureAppointments.length > 0) {
-          loadQueueDataForAppointment(futureAppointments[0]);
-        }
-      } else {
-        // No appointments found for this user
+      const userId = user?.userId;
+      if (!userId) {
         setUpcomingAppointments([]);
         setTotalAppointments(0);
+        return;
+      }
+
+      const appointments = await apiCall(`/appointments/user/${userId}`);
+      const now = new Date();
+      const futureAppointments = (appointments || [])
+        .filter(apt => new Date(`${apt.date}T${apt.time}`) > now)
+        .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+
+      setUpcomingAppointments(futureAppointments);
+      setTotalAppointments(futureAppointments.length);
+
+      if (futureAppointments.length > 0) {
+        loadQueueDataForAppointment(futureAppointments[0]);
       }
     } catch (err) {
       console.error('Error loading appointments:', err);
@@ -174,56 +111,33 @@ const Dashboard = () => {
     }
   };
 
-  /**
-   * Load queue data for a specific appointment
-   */
   const loadQueueDataForAppointment = async (appointment) => {
     try {
-      if (!appointment?.appointment_id) {
-        console.log('[Queue] No appointment_id found');
+      if (!appointment?.appointment_id || !user?.userId) {
         setIsInQueue(false);
         return;
       }
 
-      // Fetch queue data from API for this specific appointment
-      const userId = user?.userId;
-      if (!userId) {
-        console.log('[Queue] No userId found');
-        return;
-      }
-
-      console.log('[Queue] Fetching queue data for user:', userId);
-      const response = await fetch(`${BASE_URL}/appointments/queue/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      console.log('[Queue] Response status:', response.status);
-
-      if (response.ok) {
-        const queueData = await response.json();
-        console.log('[Queue] Queue data received:', queueData);
+      try {
+        const queueData = await apiCall(`/appointments/queue/${user.userId}`);
         setQueuePosition(queueData.position ?? null);
         setEstimatedWaitTime(queueData.estimated_wait_time ?? null);
         setIsInQueue(queueData.position != null);
-      } else {
-        const errorText = await response.text();
-        console.log('[Queue] Error response:', errorText);
-        setQueuePosition(null);
-        setEstimatedWaitTime(null);
-        setIsInQueue(false);
+      } catch (err) {
+        if (err.status === 404) {
+          setQueuePosition(null);
+          setEstimatedWaitTime(null);
+          setIsInQueue(false);
+        } else {
+          setIsInQueue(false);
+        }
       }
     } catch (err) {
-      console.error('[Queue] Error loading queue data:', err);
+      console.error('Error loading queue data for appointment:', err);
       setIsInQueue(false);
     }
   };
 
-  /**
-   * REQ-7 & REQ-8: Load queue position and estimated wait time from database
-   */
   const loadQueueData = async () => {
     try {
       const userId = user?.userId;
@@ -232,124 +146,74 @@ const Dashboard = () => {
         return;
       }
 
-      // Fetch queue data from API
-      const response = await fetch(`${BASE_URL}/appointments/queue/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const queueData = await response.json();
+      try {
+        const queueData = await apiCall(`/appointments/queue/${userId}`);
         setQueuePosition(queueData.position ?? null);
         setEstimatedWaitTime(queueData.estimated_wait_time ?? null);
         setIsInQueue(queueData.position != null);
-        
-        // Also update localStorage for offline access
-        localStorage.setItem('userQueueData', JSON.stringify({
-          position: queueData.position,
-          estimatedWaitTime: queueData.estimated_wait_time
-        }));
-      } else if (response.status === 404) {
-        // Not in queue
-        setQueuePosition(null);
-        setEstimatedWaitTime(null);
-        setIsInQueue(false);
-        localStorage.removeItem('userQueueData');
-      } else {
-        // Fallback to localStorage if API fails
-        const raw = localStorage.getItem('userQueueData');
-        if (raw) {
-          const queue = JSON.parse(raw);
-          setQueuePosition(queue.position ?? null);
-          setEstimatedWaitTime(queue.estimatedWaitTime ?? null);
-          setIsInQueue(queue.position != null);
+      } catch (error) {
+        if (error.status === 404) {
+          setQueuePosition(null);
+          setEstimatedWaitTime(null);
+          setIsInQueue(false);
+        } else {
+          setIsInQueue(false);
         }
       }
     } catch (err) {
       console.error('Error loading queue data:', err);
-      // Fallback to localStorage on error
-      try {
-        const raw = localStorage.getItem('userQueueData');
-        if (raw) {
-          const queue = JSON.parse(raw);
-          setQueuePosition(queue.position ?? null);
-          setEstimatedWaitTime(queue.estimatedWaitTime ?? null);
-          setIsInQueue(queue.position != null);
-        } else {
-          setIsInQueue(false);
-        }
-      } catch {
-        setIsInQueue(false);
-      }
+      setIsInQueue(false);
     }
   };
 
-  // ==========================================================================
-  // UTILITY FUNCTIONS
-  // ==========================================================================
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    try {
+      await loadAppointments();
+      await loadQueueData();
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Utility functions
   const formatDate = (dateString) =>
     new Date(dateString + 'T00:00:00').toLocaleDateString('en-US', {
       weekday: 'short',
-      year:    'numeric',
-      month:   'short',
-      day:     'numeric',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
 
-  // ==========================================================================
-  // REQ-6: MODAL HANDLERS (Reschedule / Cancel)
-  // ==========================================================================
-
+  // Modal handlers
   const handleOpenRescheduleModal = (appointment) => {
     setSelectedAppointment(appointment);
     setRescheduleModalOpen(true);
   };
 
-  const handleRescheduleAppointment = (rescheduled) => {
-    const updated = upcomingAppointments.map((apt) =>
-      apt.id === rescheduled.id ? rescheduled : apt
-    );
-    setUpcomingAppointments(updated);
-    const appointmentsKey = getUserAppointmentsKey();
-    localStorage.setItem(appointmentsKey, JSON.stringify(updated));
+  const handleRescheduleAppointment = async () => {
+    await loadAppointments();
     setRescheduleModalOpen(false);
     setSelectedAppointment(null);
   };
 
   const handleCancelAppointmentFromModal = async (cancellationRecord) => {
     try {
-      const token = localStorage.getItem('saqms_token');
-      await fetch(`${BASE_URL}/appointments/${cancellationRecord.appointmentId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+      await apiCall(`/appointments/${cancellationRecord.appointmentId}`, {
+        method: 'DELETE'
       });
-    } catch {
-      // silently continue — update local state regardless
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
     }
 
-    const updated = upcomingAppointments.filter(
-      (apt) => apt.id !== cancellationRecord.appointmentId
-    );
-    setUpcomingAppointments(updated);
-    const appointmentsKey = getUserAppointmentsKey();
-    localStorage.setItem(appointmentsKey, JSON.stringify(updated));
-    setTotalAppointments(updated.length);
-
-    localStorage.removeItem('userQueueData');
-    setQueuePosition(null);
-    setEstimatedWaitTime(null);
-    setIsInQueue(false);
+    await loadAppointments();
+    await loadQueueData();
 
     setRescheduleModalOpen(false);
     setSelectedAppointment(null);
   };
 
-  // ==========================================================================
-  // SKELETON LOADER
-  // ==========================================================================
-
+  // Skeleton loader
   const SkeletonCard = () => (
     <div className="dashboard-card skeleton-card" aria-hidden="true">
       <div className="skeleton-line skeleton-title skeleton-shimmer"></div>
@@ -359,72 +223,54 @@ const Dashboard = () => {
     </div>
   );
 
-  // ==========================================================================
-  // RENDER
-  // ==========================================================================
   return (
     <div className="dashboard-container">
-
-      {/* ===== DASHBOARD HEADER ===== */}
+      {/* Dashboard Header */}
       <section className="dashboard-header">
         <div className="header-content">
-          <h1>Welcome, {user?.name || 'Patient'}! </h1>
+          <h1>Welcome, {user?.name || 'Patient'}!</h1>
           <p>Manage your appointments and track your queue status in real time.</p>
         </div>
       </section>
 
-      {/* ===== STATISTICS TILES ===== */}
+      {/* Statistics Tiles */}
       <section className="dashboard-stats">
-        {/* Tile 1: Upcoming count */}
         <div className="stats-tile">
           <span className="stats-icon">📅</span>
           <span className="stats-number">
-            {isLoading ? (
-              <span className="stats-loading-dot">···</span>
-            ) : totalAppointments}
+            {isLoading ? <span className="stats-loading-dot">···</span> : totalAppointments}
           </span>
           <p className="stats-label">Upcoming Appointments</p>
         </div>
 
-        {/* Tile 2: Completed count */}
         <div className="stats-tile">
           <span className="stats-icon">✅</span>
           <span className="stats-number">
-            {isLoading ? (
-              <span className="stats-loading-dot">···</span>
-            ) : completedAppointments}
+            {isLoading ? <span className="stats-loading-dot">···</span> : 0}
           </span>
           <p className="stats-label">Completed</p>
         </div>
 
-        {/* Tile 3: REQ-7 — Queue Position */}
         <div className="stats-tile">
           <span className="stats-icon">⏱️</span>
           <span className="stats-number">
-            {isLoading ? (
-              <span className="stats-loading-dot">···</span>
-            ) : isInQueue ? queuePosition : '—'}
+            {isLoading ? <span className="stats-loading-dot">···</span> : isInQueue ? queuePosition : '—'}
           </span>
           <p className="stats-label">Queue Position</p>
         </div>
 
-        {/* Tile 4: REQ-8 — Estimated Wait Time */}
         <div className="stats-tile">
           <span className="stats-icon">⏳</span>
           <span className="stats-number">
-            {isLoading ? (
-              <span className="stats-loading-dot">···</span>
-            ) : isInQueue && estimatedWaitTime !== null
-              ? `${estimatedWaitTime}m`
-              : '—'}
+            {isLoading ? <span className="stats-loading-dot">···</span> : 
+             isInQueue && estimatedWaitTime !== null ? `${estimatedWaitTime}m` : '—'}
           </span>
           <p className="stats-label">Est. Wait Time</p>
         </div>
       </section>
 
-      {/* ===== DASHBOARD CONTENT GRID ===== */}
+      {/* Dashboard Content */}
       <div className="dashboard-content">
-
         {isLoading ? (
           <>
             <SkeletonCard />
@@ -434,8 +280,7 @@ const Dashboard = () => {
           </>
         ) : (
           <>
-
-            {/* ── MODULE 1: UPCOMING APPOINTMENTS ── */}
+            {/* Upcoming Appointments */}
             <div className="dashboard-card">
               <h2>📅 Upcoming Appointments</h2>
 
@@ -444,9 +289,7 @@ const Dashboard = () => {
                   {upcomingAppointments.map((appointment) => (
                     <div key={appointment.id} className="appointment-item">
                       <div className="appointment-info">
-                        <h3 className="appointment-doctor">
-                          {appointment.doctorName}
-                        </h3>
+                        <h3 className="appointment-doctor">{appointment.doctorName}</h3>
                         <div className="appointment-details">
                           <div className="appointment-details-item">
                             <span>📅 {formatDate(appointment.date)}</span>
@@ -455,13 +298,10 @@ const Dashboard = () => {
                             <span>⏰ {appointment.time}</span>
                           </div>
                           <div className="appointment-details-item">
-                            <span className="status-badge confirmed">
-                              {appointment.specialty}
-                            </span>
+                            <span className="status-badge confirmed">{appointment.specialty}</span>
                           </div>
                         </div>
                       </div>
-
                       <div className="appointment-actions">
                         <button
                           className="manage-btn"
@@ -479,19 +319,39 @@ const Dashboard = () => {
                   <div className="empty-state-icon">📭</div>
                   <h3 className="empty-state-title">No Upcoming Appointments</h3>
                   <p className="empty-state-desc">
-                    You don't have any visits scheduled yet.
+                    {isInQueue ? 
+                      "You're in the queue but we can't find your appointment details." :
+                      "You don't have any visits scheduled yet."
+                    }
                   </p>
-                  <p className="empty-state-hint">
-                    Browse available doctors and book your first appointment in seconds.
-                  </p>
-                  <Link to="/doctors" className="nav-btn solid empty-state-cta">
-                    🔍 Find a Doctor
-                  </Link>
+                  {isInQueue ? (
+                    <div className="empty-state-actions">
+                      <p className="empty-state-hint">
+                        You're in the queue but appointments aren't loading.
+                      </p>
+                      <button 
+                        className="nav-btn solid empty-state-cta"
+                        onClick={handleRefresh}
+                        disabled={isLoading}
+                      >
+                        🔄 Refresh
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="empty-state-actions">
+                      <p className="empty-state-hint">
+                        Browse available doctors and book your first appointment in seconds.
+                      </p>
+                      <Link to="/doctors" className="nav-btn solid empty-state-cta">
+                        🔍 Find a Doctor
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* ── MODULE 2: QUEUE STATUS (REQ-7 & REQ-8) ── */}
+            {/* Queue Status */}
             <div className="dashboard-card">
               <h2>📍 Your Queue Status</h2>
 
@@ -505,25 +365,22 @@ const Dashboard = () => {
                     <div className="queue-info-item">
                       <span className="queue-label">Estimated Wait</span>
                       <span className="queue-value">
-                        {estimatedWaitTime !== null
-                          ? `${estimatedWaitTime} min`
-                          : 'Calculating…'}
+                        {estimatedWaitTime !== null ? `${estimatedWaitTime} min` : 'Calculating…'}
                       </span>
                     </div>
                   </div>
                   <div className="queue-status-message">
-                    <p>
-                      🟢 You are in the queue. We'll notify you when it's your turn — hang tight!
-                    </p>
+                    <p>🟢 You are in the queue. We'll notify you of any position changes — hang tight!</p>
+                    <small className="text-muted">
+                      Queue positions update automatically. Check your notifications for any changes.
+                    </small>
                   </div>
                 </div>
               ) : (
                 <div className="empty-state">
                   <div className="empty-state-icon">🏥</div>
                   <h3 className="empty-state-title">Not In Any Queue</h3>
-                  <p className="empty-state-desc">
-                    You are not currently waiting at any clinic.
-                  </p>
+                  <p className="empty-state-desc">You are not currently waiting at any clinic.</p>
                   <p className="empty-state-hint">
                     Your live position and estimated wait will appear here automatically once you join a clinic queue.
                   </p>
@@ -531,7 +388,7 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* ── MODULE 3: MEDICAL RECORDS ── */}
+            {/* Medical Records */}
             <div className="dashboard-card">
               <h2>📋 Medical Records</h2>
               <div className="empty-state">
@@ -546,16 +403,14 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* ── MODULE 4: NOTIFICATIONS ── */}
+            {/* Notifications */}
             <div className="dashboard-card">
               <h2>🔔 Recent Notifications</h2>
               {notifications.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-state-icon">🔕</div>
                   <h3 className="empty-state-title">All Caught Up!</h3>
-                  <p className="empty-state-desc">
-                    You have no new notifications right now.
-                  </p>
+                  <p className="empty-state-desc">You have no new notifications right now.</p>
                   <p className="empty-state-hint">
                     Appointment confirmations, queue alerts, and reminders will appear here as events occur.
                   </p>
@@ -574,12 +429,11 @@ const Dashboard = () => {
                 </ul>
               )}
             </div>
-
           </>
         )}
       </div>
 
-      {/* ── REQ-6: Reschedule / Cancel Modal ── */}
+      {/* Reschedule/Cancel Modal */}
       <RescheduleCancel
         appointment={selectedAppointment}
         isOpen={rescheduleModalOpen}

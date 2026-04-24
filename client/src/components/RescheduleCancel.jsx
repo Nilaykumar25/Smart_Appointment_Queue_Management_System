@@ -7,12 +7,12 @@
  * PURPOSE:
  * Provides comprehensive UI for rescheduling and canceling appointments
  * with deadline validation to ensure patients cannot reschedule/cancel
- * within a minimum timeframe (default: 24 hours) of their appointment.
+ * within a minimum timeframe (default: 2 hours) of their appointment.
  * 
  * FEATURES:
  * ✓ Modal dialog for reschedule/cancel operations
- * ✓ Deadline validation (cannot cancel/reschedule < 24 hours before)
- * ✓ Time remaining counter
+ * ✓ Deadline validation (cannot cancel/reschedule < 2 hours before)
+ * ✓ Real-time remaining time counter
  * ✓ Reschedule to available time slots
  * ✓ Cancellation reason collection
  * ✓ Confirmation dialogs with action review
@@ -26,8 +26,8 @@
  * - onCancel: Callback function when appointment is cancelled
  * 
  * DEADLINE VALIDATION RULES:
- * - Minimum 24 hours required before appointment to reschedule/cancel
- * - Time calculated from current moment to appointment date/time
+ * - Minimum 2 hours required before appointment to reschedule/cancel
+ * - Time calculated from current moment to appointment date/time in IST
  * - User cannot proceed if deadline has passed
  * 
  * STATE MANAGEMENT:
@@ -46,8 +46,8 @@
 import React, { useState, useEffect } from 'react';
 import './RescheduleCancel.css';
 
-// REQ-6: Deadline validation constant (24 hours in milliseconds)
-const CANCELLATION_DEADLINE_HOURS = 24;
+// REQ-6: Deadline validation constant (2 hours in milliseconds)
+const CANCELLATION_DEADLINE_HOURS = 2;
 const DEADLINE_MS = CANCELLATION_DEADLINE_HOURS * 60 * 60 * 1000;
 
 const RescheduleCancel = ({ appointment, isOpen, onClose, onReschedule, onCancel }) => {
@@ -81,7 +81,7 @@ const RescheduleCancel = ({ appointment, isOpen, onClose, onReschedule, onCancel
   /**
    * Effect: Calculate and update deadline validation status
    * REQ-6: Validates that appointment is at least CANCELLATION_DEADLINE_HOURS away
-   * Updates every second to provide real-time countdown
+   * Updates every minute to provide real-time countdown
    */
   useEffect(() => {
     if (!appointment || !isOpen) return;
@@ -89,34 +89,69 @@ const RescheduleCancel = ({ appointment, isOpen, onClose, onReschedule, onCancel
     // Calculate deadline timer
     const calculateDeadline = () => {
       try {
+        // Validate appointment data
+        if (!appointment || !appointment.date || !appointment.time) {
+          console.error('[RescheduleCancel] Invalid appointment data:', appointment);
+          setCannotProceed(true);
+          setTimeRemaining({ hours: 0, minutes: 0 });
+          return;
+        }
+        
         // Parse appointment date and time into Date object
-        // Format: appointment.date = "YYYY-MM-DD", appointment.time = "HH:MM"
-        const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}:00`);
+        // Handle both "HH:MM" and "HH:MM:SS" time formats
+        let timeStr = appointment.time;
+        if (timeStr.includes(':') && timeStr.split(':').length === 3) {
+          // If time is "HH:MM:SS", remove the seconds
+          timeStr = timeStr.substring(0, 5);
+        }
+        
+        const appointmentDateTimeStr = `${appointment.date}T${timeStr}:00`;
+        const appointmentDateTime = new Date(appointmentDateTimeStr);
+        
+        // Validate the parsed date
+        if (isNaN(appointmentDateTime.getTime())) {
+          console.error('[RescheduleCancel] Invalid appointment datetime:', appointmentDateTimeStr);
+          setCannotProceed(true);
+          setTimeRemaining({ hours: 0, minutes: 0 });
+          return;
+        }
+        
+        // Use current time
         const currentTime = new Date();
 
         // Calculate milliseconds until appointment
         const msUntilAppointment = appointmentDateTime.getTime() - currentTime.getTime();
-
-        // REQ-6: Check if sufficient time remains for cancellation/reschedule
-        // If less than 24 hours remain, user cannot proceed with changes
-        if (msUntilAppointment < DEADLINE_MS) {
-          setCannotProceed(true);
-        } else {
+        
+        // Simple check: if appointment is more than 2 hours away, allow cancellation
+        if (msUntilAppointment > DEADLINE_MS) {
           setCannotProceed(false);
+          
+          // Calculate time until deadline (2 hours before appointment)
+          const msUntilDeadline = msUntilAppointment - DEADLINE_MS;
+          const hoursUntilDeadline = Math.floor(msUntilDeadline / (1000 * 60 * 60));
+          const minutesUntilDeadline = Math.floor((msUntilDeadline % (1000 * 60 * 60)) / (1000 * 60));
+          
+          setTimeRemaining({
+            hours: Math.max(0, hoursUntilDeadline),
+            minutes: Math.max(0, minutesUntilDeadline),
+          });
+        } else {
+          setCannotProceed(true);
+          
+          // Show time until appointment
+          const hoursUntilAppointment = Math.floor(Math.max(0, msUntilAppointment) / (1000 * 60 * 60));
+          const minutesUntilAppointment = Math.floor((Math.max(0, msUntilAppointment) % (1000 * 60 * 60)) / (1000 * 60));
+          
+          setTimeRemaining({
+            hours: hoursUntilAppointment,
+            minutes: minutesUntilAppointment,
+          });
         }
-
-        // Convert remaining time to hours and minutes for display
-        const msAfterDeadline = msUntilAppointment - DEADLINE_MS;
-        const hoursRemaining = Math.floor(msAfterDeadline / (1000 * 60 * 60));
-        const minutesRemaining = Math.floor((msAfterDeadline % (1000 * 60 * 60)) / (1000 * 60));
-
-        setTimeRemaining({
-          hours: Math.max(0, hoursRemaining),
-          minutes: Math.max(0, minutesRemaining),
-        });
+        
       } catch (err) {
-        console.error('Error calculating deadline:', err);
+        console.error('[RescheduleCancel] Error calculating deadline:', err);
         setCannotProceed(true);
+        setTimeRemaining({ hours: 0, minutes: 0 });
       }
     };
 
@@ -138,7 +173,7 @@ const RescheduleCancel = ({ appointment, isOpen, onClose, onReschedule, onCancel
   const handleRescheduleClick = () => {
     setError('');
     if (cannotProceed) {
-      setError('Cannot reschedule within 24 hours of appointment');
+      setError(`Cannot reschedule within ${CANCELLATION_DEADLINE_HOURS} hours of appointment`);
       return;
     }
     setAction('reschedule');
@@ -151,7 +186,7 @@ const RescheduleCancel = ({ appointment, isOpen, onClose, onReschedule, onCancel
   const handleCancelClick = () => {
     setError('');
     if (cannotProceed) {
-      setError('Cannot cancel within 24 hours of appointment');
+      setError(`Cannot cancel within ${CANCELLATION_DEADLINE_HOURS} hours of appointment`);
       return;
     }
     setAction('cancel');
@@ -185,7 +220,8 @@ const RescheduleCancel = ({ appointment, isOpen, onClose, onReschedule, onCancel
 
     // Validation: New date cannot be in the past
     const newDateTime = new Date(`${selectedDate}T${selectedTime}:00`);
-    if (newDateTime < new Date()) {
+    const currentTime = new Date();
+    if (newDateTime < currentTime) {
       setError('Cannot schedule appointment in the past');
       return;
     }
@@ -326,7 +362,7 @@ const RescheduleCancel = ({ appointment, isOpen, onClose, onReschedule, onCancel
   /**
    * Helper: Get minimum selectable date for rescheduling
    * Prevents selecting dates in the past or too close to current time
-   * Returns today's date as string (YYYY-MM-DD)
+   * Returns tomorrow's date as string (YYYY-MM-DD)
    */
   const getMinDate = () => {
     const tomorrow = new Date();
@@ -377,7 +413,7 @@ const RescheduleCancel = ({ appointment, isOpen, onClose, onReschedule, onCancel
         {!cannotProceed && (
           <div className="deadline-status safe">
             <p>
-              ✓ Time Remaining: <strong>{timeRemaining.hours}h {timeRemaining.minutes}m</strong>
+              ✓ Time Remaining to Cancel/Reschedule: <strong>{timeRemaining.hours || 0}h {timeRemaining.minutes || 0}m</strong>
             </p>
             <small>You can reschedule or cancel this appointment</small>
           </div>
@@ -389,8 +425,11 @@ const RescheduleCancel = ({ appointment, isOpen, onClose, onReschedule, onCancel
             <p>
               ⚠️ Too Late to Reschedule or Cancel
             </p>
+            <p>
+              Time until appointment: <strong>{timeRemaining.hours || 0}h {timeRemaining.minutes || 0}m</strong>
+            </p>
             <small>
-              You must reschedule or cancel at least 24 hours before your appointment
+              You must reschedule or cancel at least {CANCELLATION_DEADLINE_HOURS} hours before your appointment
             </small>
           </div>
         )}

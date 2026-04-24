@@ -214,44 +214,20 @@ const BookingConfirmation = () => {
         completeAppointment.appointment_id = saved.appointment_id;
         appointmentId = saved.appointment_id;
 
-        // Step 2: Create queue entry — REQ-8: wait time uses avg_consultation_duration
-        try {
-          const queueRes = await fetch(`${BASE_URL}/appointments/queue`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${getToken()}`,
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              appointment_id: appointmentId,
-              patient_id: userId,
-            }),
-          });
-
-          if (queueRes.ok) {
-            const queueData = await queueRes.json();
-            // REQ-7 & REQ-8: Store actual queue position and duration-based wait time
-            localStorage.setItem('userQueueData', JSON.stringify({
-              position: queueData.queue_position,
-              estimatedWaitTime: queueData.estimated_wait_time,
-              avgConsultationDuration: queueData.avg_consultation_duration,
-            }));
-          }
-        } catch (queueErr) {
-          console.warn('Queue entry creation failed:', queueErr);
+        // Queue position and wait time are now returned directly from booking API
+        if (saved.queuePosition) {
+          // Update confirmation message with queue position
+          setConfirmationMessage(`✅ Appointment booked successfully! You are position ${saved.queuePosition} in the queue.`);
+        } else {
+          setConfirmationMessage('✅ Appointment booked successfully!');
         }
       }
 
-      // Always persist locally for dashboard display
-      const appointmentsKey = userId ? `userAppointments_${userId}` : 'userAppointments';
-      const existingAppointments = localStorage.getItem(appointmentsKey);
-      const appointments = existingAppointments ? JSON.parse(existingAppointments) : [];
-      appointments.push(completeAppointment);
-      localStorage.setItem(appointmentsKey, JSON.stringify(appointments));
-
-      // Show success message
-      setConfirmationMessage('✅ Appointment booked successfully!');
+      // DATABASE FIRST - No localStorage caching needed
+      // Show success message (already set above with queue position info)
+      if (!confirmationMessage) {
+        setConfirmationMessage('✅ Appointment booked successfully!');
+      }
 
       // Redirect to dashboard after 2 seconds
       setTimeout(() => {

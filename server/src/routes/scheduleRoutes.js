@@ -9,6 +9,7 @@ const router         = express.Router();
 const db             = require("../db/connection");
 const requireRole    = require("../middleware/requireRole");
 const auditMiddleware = require("../middleware/auditMiddleware");
+const { dateStringToIST } = require("../utils/timezone");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/schedule/config
@@ -121,9 +122,55 @@ router.post(
     }
 
     try {
+      // REQ-9: Validate doctor schedule against facility operating hours
+      // Check that doctor's schedule falls within facility hours for each working day
+      // Database mapping: 0=Monday, 1=Tuesday, 2=Wednesday, 3=Thursday, 4=Friday, 5=Saturday, 6=Sunday
+      const dayMap = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+      const facilityValidation = [];
+      
+      for (const dayName of workingDays) {
+        const dayOfWeek = dayMap[dayName];
+        const { rows: facilityHours } = await db.query(
+          `SELECT start_time, end_time, is_operational
+           FROM facility_config
+           WHERE day_of_week = $1`,
+          [dayOfWeek]
+        );
+        
+        if (facilityHours.length === 0) {
+          return res.status(400).json({ 
+            error: `Facility configuration not found for ${dayName}` 
+          });
+        }
+        
+        const facility = facilityHours[0];
+        if (!facility.is_operational) {
+          facilityValidation.push(`${dayName} (facility closed)`);
+          continue;
+        }
+        
+        // Convert times to comparable format (normalize to HH:MM:SS)
+        const facilityStart = facility.start_time; // Already in HH:MM:SS format
+        const facilityEnd = facility.end_time;     // Already in HH:MM:SS format
+        const doctorStart = startTime + ':00';     // Convert HH:MM to HH:MM:SS
+        const doctorEnd = endTime + ':00';         // Convert HH:MM to HH:MM:SS
+        
+        if (doctorStart < facilityStart || doctorEnd > facilityEnd) {
+          facilityValidation.push(
+            `${dayName} (doctor: ${startTime}-${endTime}, facility: ${facilityStart}-${facilityEnd})`
+          );
+        }
+      }
+      
+      if (facilityValidation.length > 0) {
+        console.error('[POST /schedule/config] Facility hours validation failed:', facilityValidation);
+        return res.status(400).json({
+          error: `Doctor schedule must be within facility operating hours. Issues: ${facilityValidation.join(', ')}`
+        });
+      }
+
       // Map day abbreviations to the next occurrence of that weekday
       // We generate entries for the next 90 days for the selected working days
-      const dayMap = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
       const today  = new Date();
       const datesToInsert = [];
 

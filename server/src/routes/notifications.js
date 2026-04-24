@@ -6,17 +6,17 @@ const express     = require("express");
 const router      = express.Router();
 const db          = require("../db/connection");
 const requireRole = require("../middleware/requireRole");
-const { formatISTSQL } = require("../utils/timezone");
+const { formatISTSQL, getTodayIST } = require("../utils/timezone");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: save a notification record to the DB
 // Called internally by this file and can be imported by appointments.js
 // ─────────────────────────────────────────────────────────────────────────────
 async function saveNotification(userId, message) {
-  // Insert with explicit UTC timestamp
+  // Insert with explicit UTC timestamp (will be converted to IST for display)
   await db.query(
     `INSERT INTO notifications (user_id, message, status, timestamp)
-     VALUES ($1, $2, 'Sent', TIMEZONE('UTC', NOW()))`,
+     VALUES ($1, $2, 'Sent', NOW())`,
     [userId, message]
   );
 }
@@ -60,12 +60,12 @@ router.post("/broadcast", requireRole(["admin", "staff"]), async (req, res) => {
 
     } else if (target === "all_today") {
       // All patients with an appointment today (any status except cancelled)
-      // Use IST timezone to match stored UTC timestamps
+      // Use consistent IST date comparison
       queryText = `
         SELECT DISTINCT a.patient_id
         FROM appointments a
         JOIN schedules s ON s.schedule_id = a.schedule_id
-        WHERE TO_CHAR(s.date AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM-DD') = TO_CHAR((NOW() AT TIME ZONE 'Asia/Kolkata'), 'YYYY-MM-DD')
+        WHERE DATE(s.date) = $1
           AND a.status NOT IN ('No-Show', 'Completed')`;
 
     } else {
@@ -74,7 +74,8 @@ router.post("/broadcast", requireRole(["admin", "staff"]), async (req, res) => {
       });
     }
 
-    const { rows: activePatients } = await db.query(queryText);
+    const queryParams = target === "all_today" ? [getTodayIST()] : [];
+    const { rows: activePatients } = await db.query(queryText, queryParams);
 
     if (activePatients.length === 0) {
       return res.json({

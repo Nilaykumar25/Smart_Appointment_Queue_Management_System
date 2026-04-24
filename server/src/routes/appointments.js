@@ -2,7 +2,43 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/connection');
 const { saveNotification } = require('./notifications');
+const { getTodayIST } = require('../utils/timezone');
 const requireRole = require('../middleware/requireRole');
+
+// Implements: REQ-5 — Get user's appointments
+// GET /appointments/user/:userId — get all appointments for a specific user
+router.get('/user/:userId', async (req, res) => {
+  const { userId } = req.params;
+  
+  try {
+    const { rows } = await db.query(
+      `SELECT
+         a.appointment_id AS "id",
+         a.appointment_id,
+         u.name AS "patientName",
+         d.name AS "doctorName",
+         d.specialty,
+         TO_CHAR(s.date, 'YYYY-MM-DD') AS "date",
+         TO_CHAR(s.start_time, 'HH24:MI') AS "time",
+         TO_CHAR(s.end_time, 'HH24:MI') AS "endTime",
+         a.status
+       FROM appointments a
+       JOIN users u ON u.user_id = a.patient_id
+       JOIN doctors d ON d.doctor_id = a.doctor_id
+       JOIN schedules s ON s.schedule_id = a.schedule_id
+       WHERE a.patient_id = $1
+         AND a.status NOT IN ('Completed', 'No-Show')
+         AND s.date >= CURRENT_DATE
+       ORDER BY s.date ASC, s.start_time ASC`,
+      [userId]
+    );
+    
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /appointments/user/:userId error:', err);
+    res.status(500).json({ error: 'Failed to fetch user appointments' });
+  }
+});
 
 // Implements: REQ-7 (admin view) — GET /appointments/all
 // Returns all upcoming appointments for admin panel
@@ -21,9 +57,10 @@ router.get('/all', requireRole(['admin', 'staff']), async (req, res) => {
        JOIN users u     ON u.user_id     = a.patient_id
        JOIN doctors d   ON d.doctor_id   = a.doctor_id
        JOIN schedules s ON s.schedule_id = a.schedule_id
-       WHERE DATE(s.date AT TIME ZONE 'Asia/Kolkata') >= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')::date
+       WHERE s.date >= $1
          AND a.status NOT IN ('Completed', 'No-Show')
-       ORDER BY s.date ASC, s.start_time ASC`
+       ORDER BY s.date ASC, s.start_time ASC`,
+      [getTodayIST()]
     );
     res.json(rows);
   } catch (err) {
@@ -33,7 +70,9 @@ router.get('/all', requireRole(['admin', 'staff']), async (req, res) => {
 });
 
 // Implements: REQ-5 --- see SRS Section 3.5
-// POST /appointments --- DB-level lock + explicit checks prevent double booking
+// Enhanced: REQ-9 --- Validate appointments against facility operating hours
+// Enhanced: Multiple patients per slot (max 3) with proper queue ordering
+// POST /appointments --- DB-level lock + explicit checks prevent overbooking
 router.post('/', async (req, res) => {
   const { patient_id, doctor_id, schedule_id } = req.body;
   const client = await db.getClient();
@@ -43,7 +82,10 @@ router.post('/', async (req, res) => {
 
     // REQ-5: Lock the slot row to prevent concurrent bookings of the same slot
     const { rows: slot } = await client.query(
-      `SELECT * FROM schedules WHERE schedule_id = $1 AND is_blackout = FALSE FOR UPDATE`,
+      `SELECT s.*, 
+              EXTRACT(DOW FROM s.date) as day_of_week
+       FROM schedules s 
+       WHERE s.schedule_id = $1 AND s.is_blackout = FALSE FOR UPDATE`,
       [schedule_id]
     );
 
@@ -52,7 +94,39 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'This slot is unavailable or has been blocked.' });
     }
 
-    // REQ-5: Check if slot is already booked by anyone (explicit check before insert)
+    const schedule = slot[0];
+    
+    // REQ-9: Validate appointment against facility operating hours
+    // Convert PostgreSQL day_of_week (0=Sunday, 1=Monday, ..., 6=Saturday) to our format (0=Monday, ..., 6=Sunday)
+    const facilityDayOfWeek = schedule.day_of_week === 0 ? 6 : schedule.day_of_week - 1;
+    
+    const { rows: facilityHours } = await client.query(
+      `SELECT start_time, end_time, is_operational
+       FROM facility_config
+       WHERE day_of_week = $1`,
+      [facilityDayOfWeek]
+    );
+
+    if (facilityHours.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Facility configuration not found for this day.' });
+    }
+
+    const facility = facilityHours[0];
+    if (!facility.is_operational) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Facility is closed on this day. Please select a different date.' });
+    }
+
+    // Check if appointment time falls within facility hours
+    if (schedule.start_time < facility.start_time || schedule.end_time > facility.end_time) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ 
+        error: `This appointment time is outside facility operating hours (${facility.start_time} - ${facility.end_time}). Please select a different slot.` 
+      });
+    }
+
+    // Enhanced: Check slot capacity (max 3 patients per slot)
     const { rows: existing } = await client.query(
       `SELECT appointment_id FROM appointments
        WHERE schedule_id = $1
@@ -60,9 +134,12 @@ router.post('/', async (req, res) => {
       [schedule_id]
     );
 
-    if (existing.length > 0) {
+    const maxCapacity = schedule.max_capacity || 3;
+    if (existing.length >= maxCapacity) {
       await client.query('ROLLBACK');
-      return res.status(409).json({ error: 'This time slot has just been booked by another patient. Please select a different slot.' });
+      return res.status(409).json({ 
+        error: `This time slot is full (${existing.length}/${maxCapacity} patients). Please select a different slot.` 
+      });
     }
 
     // REQ-5: Prevent same patient from booking the same slot twice
@@ -77,18 +154,53 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'You already have a booking for this time slot.' });
     }
 
+    // Insert the appointment
     const { rows: appt } = await client.query(
       `INSERT INTO appointments (patient_id, doctor_id, schedule_id, status)
        VALUES ($1, $2, $3, 'Booked') RETURNING *`,
       [patient_id, doctor_id, schedule_id]
     );
+    
+    // Calculate queue position: count all appointments for this doctor on this date that come before this one
+    const { rows: positionResult } = await client.query(
+      `SELECT COUNT(*) as position
+       FROM appointments a
+       JOIN schedules s ON s.schedule_id = a.schedule_id
+       JOIN schedules current_s ON current_s.schedule_id = $1
+       WHERE a.doctor_id = $2
+         AND DATE(s.date) = DATE(current_s.date)
+         AND a.status NOT IN ('Completed', 'No-Show')
+         AND (s.start_time < current_s.start_time OR 
+              (s.start_time = current_s.start_time AND a.created_at <= $3))`,
+      [schedule_id, doctor_id, appt[0].created_at]
+    );
+
+    const newPosition = parseInt(positionResult[0].position);
+    const estimatedWait = Math.max(0, (newPosition - 1) * 15); // 15 min average per patient
+
+    // Create queue entry
+    await client.query(
+      `INSERT INTO queue (appointment_id, queue_position, estimated_wait_time)
+       VALUES ($1, $2, $3)`,
+      [appt[0].appointment_id, newPosition, estimatedWait]
+    );
+
+    console.log(`[BOOKING] Created appointment ${appt[0].appointment_id} at queue position ${newPosition} with ${estimatedWait}min wait`);
 
     await client.query('COMMIT');
 
     // REQ-16 — send booking confirmation notification
-    await saveNotification(patient_id, 'Your appointment has been booked successfully!');
+    await saveNotification(patient_id, `Your appointment has been booked successfully! You are position ${newPosition} in the queue.`);
 
-    res.status(201).json(appt[0]);
+    res.status(201).json({
+      ...appt[0],
+      queuePosition: newPosition,
+      estimatedWaitTime: estimatedWait,
+      slotCapacity: {
+        current: existing.length + 1,
+        maximum: maxCapacity
+      }
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     // REQ-5: Handle DB-level unique constraint violation (race condition fallback)
@@ -174,7 +286,10 @@ router.get('/queue/:patientId', async (req, res) => {
     const { rows } = await db.query(
       `SELECT q.queue_position AS position,
               q.estimated_wait_time,
+              a.appointment_id,
               a.doctor_id,
+              d.name AS doctor_name,
+              d.specialty,
               d.avg_consultation_duration,
               s.date,
               s.start_time,

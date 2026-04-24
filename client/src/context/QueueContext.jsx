@@ -70,8 +70,13 @@ export function QueueProvider({ children }) {
       const next = [...prev];
       // Swap the two rows
       [next[idx], next[swapIdx]] = [next[swapIdx], next[idx]];
-      // Reassign queuePosition numbers to match new order
-      return next.map((p, i) => ({ ...p, queuePosition: i + 1 }));
+      
+      // Keep original queuePosition values, just swap them between the two items
+      const tempPosition = next[idx].queuePosition;
+      next[idx].queuePosition = next[swapIdx].queuePosition;
+      next[swapIdx].queuePosition = tempPosition;
+      
+      return next;
     });
   }, []);
 

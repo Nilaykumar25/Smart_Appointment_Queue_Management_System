@@ -212,6 +212,8 @@ export default function BookAppointment() {
                 {filteredSlots.length > 0 ? filteredSlots.map((slot, idx) => {
                   // REQ-8: Estimated wait = position in list × avg consultation duration
                   const waitMins = idx * (doctor.avg_consultation_duration || 15);
+                  const capacity = slot.capacity || { maximum: 1, current: 0, available: 1 };
+                  
                   return (
                     <button
                       key={slot.schedule_id}
@@ -220,12 +222,31 @@ export default function BookAppointment() {
                     >
                       <span className="slot-time">{slot.start_time}</span>
                       <span className="slot-wait">~{waitMins} min wait</span>
+                      <span className="slot-capacity">
+                        {capacity.available} of {capacity.maximum} spots available
+                      </span>
                     </button>
                   );
                 }) : (
-                  <p className="no-slots">
-                    {searchQuery ? 'No slots match your search' : 'No available slots for this date'}
-                  </p>
+                  <div className="no-slots-message">
+                    {searchQuery ? (
+                      <p className="no-slots">No slots match your search</p>
+                    ) : (
+                      <div className="no-slots-info">
+                        <p className="no-slots">No available slots for this date</p>
+                        <p className="no-slots-reason">
+                          This could be because:
+                          <br />• All slots are booked
+                          <br />• Doctor is not scheduled for this day
+                          <br />• Facility is closed on this day
+                          <br />• Doctor's schedule is outside facility operating hours
+                        </p>
+                        <p className="no-slots-suggestion">
+                          Try selecting a different date or contact the facility for assistance.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

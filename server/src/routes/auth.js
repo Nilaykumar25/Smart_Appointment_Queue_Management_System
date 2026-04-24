@@ -148,6 +148,68 @@ router.post("/login", loginLimiter, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/auth/refresh — refresh expired access token using httpOnly refresh token
+// Implements: REQ-1 (session management)
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/refresh", async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ error: "No refresh token provided" });
+    }
+
+    // Check if refresh token is blacklisted
+    try {
+      const blacklisted = await redisClient.get(`blacklist:${refreshToken}`);
+      if (blacklisted) {
+        return res.status(401).json({ error: "Refresh token has been invalidated" });
+      }
+    } catch {
+      // Redis unavailable — skip blacklist check, fail open
+    }
+
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+    // Get user details from database
+    const result = await db.query(
+      "SELECT user_id, name, email, role, is_active FROM users WHERE user_id = $1",
+      [decoded.userId]
+    );
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    if (!user.is_active) {
+      return res.status(403).json({ error: "Account is deactivated" });
+    }
+
+    // Generate new access token
+    const accessToken = jwt.sign(
+      { userId: user.user_id, role: user.role, name: user.name },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRY || "15m" }
+    );
+
+    return res.status(200).json({ 
+      accessToken,
+      userId: user.user_id,
+      role: user.role,
+      name: user.name
+    });
+  } catch (err) {
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Refresh token expired" });
+    }
+    console.error("POST /auth/refresh error:", err);
+    return res.status(401).json({ error: "Invalid refresh token" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/logout — invalidate both tokens immediately
 // Implements: REQ-1 (session management)
 // ─────────────────────────────────────────────────────────────────────────────
