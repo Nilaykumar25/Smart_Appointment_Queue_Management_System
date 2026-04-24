@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: saqms-backend
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: SUPABASE_URL
+        value: https://wofxhadaxsvirjxawzhx.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvZnhoYWRheHN2aXJqeGF3emh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNjc1NjksImV4cCI6MjA5MDk0MzU2OX0.yddSK_bdCkcAUduLuzHbvqEtiZp8i844_AF2HztdyRM
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvZnhoYWRheHN2aXJqeGF3emh4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTM2NzU2OSwiZXhwIjoyMDkwOTQzNTY5fQ.z21CW-SME7yFOhAYU554dBtcqmQYUtVu2GiJWN_KIpg
+      - key: DB_HOST
+        value: aws-1-ap-south-1.pooler.supabase.com
+      - key: DB_PORT
+        value: 5432
+      - key: DB_NAME
+        value: postgres
+      - key: DB_USER
+        value: postgres.wofxhadaxsvirjxawzhx
+      - key: DB_PASSWORD
+        value: facultyoftechnologyy
+      - key: DATABASE_URL
+        value: postgresql://postgres.wofxhadaxsvirjxawzhx:facultyoftechnologyy@aws-1-ap-south-1.pooler.supabase.com:5432/postgres
+      - key: ENCRYPTION_KEY
+        value: 18f76ded7f8bab903b8d150947e864f66d2e8441e50f1a694702ddbdfb9074fc
+      - key: JWT_SECRET
+        value: 01be64e411838f3d134b8420f2f1368ef4bc5f4a875168bb56be01e8fed4a9d3d4e00a13efefd3eda776742abd422e29b00588a986ca756a6689ffa20109d6bc
+      - key: JWT_EXPIRY
+        value: 15m
+      - key: REFRESH_TOKEN_SECRET
+        value: 79e3bbcb3030ea6c07ae90681066489893a01de67129c6bacace6ce705806dad1054bec6bf76f4ae3705f907d5732af55a22ffe4e4ebbc85e76755bf19029d59
+      - key: REFRESH_TOKEN_EXPIRY
+        value: 7d
+      - key: REDIS_URL
+        value: rediss://default:gQAAAAAAAR_bAAIncDE4NDJjMDM0Y2E3NTk0MWE1ODE4MTQxN2MwOGFlMjc3OXAxNzM2OTE@immense-parakeet-73691.upstash.io:6379
+      - key: CLIENT_URL
+        value: https://smart-appointment-queue-management.vercel.app

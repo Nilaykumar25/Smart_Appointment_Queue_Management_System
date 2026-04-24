@@ -2,7 +2,12 @@
 // Implements: All routes, CORS, cookie-parser, middleware mounting
 // See SRS Section 7.1 — System Architecture
 
-require("dotenv").config({ path: require("path").resolve(__dirname, "../../.env") });
+// Load environment variables from different locations based on environment
+if (process.env.NODE_ENV === 'production') {
+  require("dotenv").config();
+} else {
+  require("dotenv").config({ path: require("path").resolve(__dirname, "../../.env") });
+}
 const express      = require("express");
 const cors         = require("cors");
 const cookieParser = require("cookie-parser");
@@ -11,13 +16,31 @@ const app = express();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: [
-    process.env.CLIENT_URL || "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://*.vercel.app",  // Allow all Vercel preview deployments
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      process.env.CLIENT_URL || "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "https://smart-appointment-queue-management.vercel.app", // Your production frontend
+    ];
+    
+    // Allow all Vercel preview deployments
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Reject origin
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,   // needed for httpOnly refresh token cookie
 }));
 app.use(express.json());
