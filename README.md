@@ -2,7 +2,7 @@
 
 A web-based clinic appointment and queue management system built for DSC-11 Software Engineering. This application allows patients to easily book appointments with doctors, manage their schedules, and track their position in the waiting queue.
 
-**Live Demo:** [https://saqms-demo.vercel.app](coming-soon)
+**Live Demo:** https://smart-appointment-queue-management.vercel.app
 
 ---
 
